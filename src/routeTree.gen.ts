@@ -9,38 +9,167 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RentaRouteImport } from './routes/renta'
+import { Route as PublicaRouteImport } from './routes/publica'
+import { Route as PropiedadesRouteImport } from './routes/propiedades'
+import { Route as CompraRouteImport } from './routes/compra'
+import { Route as AcercaRouteImport } from './routes/acerca'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as VendedoresLoginRouteImport } from './routes/vendedores.login'
+import { Route as PropiedadesIdRouteImport } from './routes/propiedades.$id'
 
+const RentaRoute = RentaRouteImport.update({
+  id: '/renta',
+  path: '/renta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PublicaRoute = PublicaRouteImport.update({
+  id: '/publica',
+  path: '/publica',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PropiedadesRoute = PropiedadesRouteImport.update({
+  id: '/propiedades',
+  path: '/propiedades',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompraRoute = CompraRouteImport.update({
+  id: '/compra',
+  path: '/compra',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcercaRoute = AcercaRouteImport.update({
+  id: '/acerca',
+  path: '/acerca',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VendedoresLoginRoute = VendedoresLoginRouteImport.update({
+  id: '/vendedores/login',
+  path: '/vendedores/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PropiedadesIdRoute = PropiedadesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => PropiedadesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/acerca': typeof AcercaRoute
+  '/compra': typeof CompraRoute
+  '/propiedades': typeof PropiedadesRouteWithChildren
+  '/publica': typeof PublicaRoute
+  '/renta': typeof RentaRoute
+  '/propiedades/$id': typeof PropiedadesIdRoute
+  '/vendedores/login': typeof VendedoresLoginRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/acerca': typeof AcercaRoute
+  '/compra': typeof CompraRoute
+  '/propiedades': typeof PropiedadesRouteWithChildren
+  '/publica': typeof PublicaRoute
+  '/renta': typeof RentaRoute
+  '/propiedades/$id': typeof PropiedadesIdRoute
+  '/vendedores/login': typeof VendedoresLoginRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/acerca': typeof AcercaRoute
+  '/compra': typeof CompraRoute
+  '/propiedades': typeof PropiedadesRouteWithChildren
+  '/publica': typeof PublicaRoute
+  '/renta': typeof RentaRoute
+  '/propiedades/$id': typeof PropiedadesIdRoute
+  '/vendedores/login': typeof VendedoresLoginRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/acerca'
+    | '/compra'
+    | '/propiedades'
+    | '/publica'
+    | '/renta'
+    | '/propiedades/$id'
+    | '/vendedores/login'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/acerca'
+    | '/compra'
+    | '/propiedades'
+    | '/publica'
+    | '/renta'
+    | '/propiedades/$id'
+    | '/vendedores/login'
+  id:
+    | '__root__'
+    | '/'
+    | '/acerca'
+    | '/compra'
+    | '/propiedades'
+    | '/publica'
+    | '/renta'
+    | '/propiedades/$id'
+    | '/vendedores/login'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AcercaRoute: typeof AcercaRoute
+  CompraRoute: typeof CompraRoute
+  PropiedadesRoute: typeof PropiedadesRouteWithChildren
+  PublicaRoute: typeof PublicaRoute
+  RentaRoute: typeof RentaRoute
+  VendedoresLoginRoute: typeof VendedoresLoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/renta': {
+      id: '/renta'
+      path: '/renta'
+      fullPath: '/renta'
+      preLoaderRoute: typeof RentaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/publica': {
+      id: '/publica'
+      path: '/publica'
+      fullPath: '/publica'
+      preLoaderRoute: typeof PublicaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/propiedades': {
+      id: '/propiedades'
+      path: '/propiedades'
+      fullPath: '/propiedades'
+      preLoaderRoute: typeof PropiedadesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compra': {
+      id: '/compra'
+      path: '/compra'
+      fullPath: '/compra'
+      preLoaderRoute: typeof CompraRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/acerca': {
+      id: '/acerca'
+      path: '/acerca'
+      fullPath: '/acerca'
+      preLoaderRoute: typeof AcercaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +177,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/vendedores/login': {
+      id: '/vendedores/login'
+      path: '/vendedores/login'
+      fullPath: '/vendedores/login'
+      preLoaderRoute: typeof VendedoresLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/propiedades/$id': {
+      id: '/propiedades/$id'
+      path: '/$id'
+      fullPath: '/propiedades/$id'
+      preLoaderRoute: typeof PropiedadesIdRouteImport
+      parentRoute: typeof PropiedadesRoute
+    }
   }
 }
 
+interface PropiedadesRouteChildren {
+  PropiedadesIdRoute: typeof PropiedadesIdRoute
+}
+
+const PropiedadesRouteChildren: PropiedadesRouteChildren = {
+  PropiedadesIdRoute: PropiedadesIdRoute,
+}
+
+const PropiedadesRouteWithChildren = PropiedadesRoute._addFileChildren(
+  PropiedadesRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AcercaRoute: AcercaRoute,
+  CompraRoute: CompraRoute,
+  PropiedadesRoute: PropiedadesRouteWithChildren,
+  PublicaRoute: PublicaRoute,
+  RentaRoute: RentaRoute,
+  VendedoresLoginRoute: VendedoresLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

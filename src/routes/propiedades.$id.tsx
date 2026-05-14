@@ -4,7 +4,7 @@ import { PROPERTIES, formatGTQ } from "@/lib/properties";
 import { PropertyCard } from "@/components/property-card";
 
 export const Route = createFileRoute("/propiedades/$id")({
-  loader: ({ params }) => {
+  loader: ({ params }): { property: (typeof PROPERTIES)[number] } => {
     const property = PROPERTIES.find((p) => p.id === params.id);
     if (!property) throw notFound();
     return { property };
