@@ -7,6 +7,9 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
+import { FloatingActions } from "@/components/floating-actions";
 
 import appCss from "../styles.css?url";
 
@@ -72,19 +75,22 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "ALTUM GROUP — Inmobiliaria de Lujo en Guatemala" },
+      { name: "description", content: "ALTUM GROUP: inmobiliaria, inversión y desarrollo. Compra, renta y publica propiedades premium en Guatemala." },
+      { name: "author", content: "ALTUM GROUP" },
+      { property: "og:title", content: "ALTUM GROUP — Inmobiliaria de Lujo en Guatemala" },
+      { property: "og:description", content: "Compra, renta y publica propiedades de lujo en Guatemala con ALTUM GROUP." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { property: "og:site_name", content: "ALTUM GROUP" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: appCss,
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap",
       },
     ],
   }),
@@ -113,7 +119,14 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <div className="flex min-h-screen flex-col bg-background">
+        <SiteHeader />
+        <main className="flex-1">
+          <Outlet />
+        </main>
+        <SiteFooter />
+        <FloatingActions />
+      </div>
     </QueryClientProvider>
   );
 }
