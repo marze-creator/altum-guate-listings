@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Bath, BedDouble, Check, MapPin, Maximize, Star } from "lucide-react";
-import { PROPERTIES, formatGTQ } from "@/lib/properties";
+import { PROPERTIES, formatGTQ, type Property } from "@/lib/properties";
 import { PropertyCard } from "@/components/property-card";
 
 export const Route = createFileRoute("/propiedades/$id")({
@@ -30,7 +30,7 @@ export const Route = createFileRoute("/propiedades/$id")({
 });
 
 function PropertyDetail() {
-  const { property: p } = Route.useLoaderData();
+  const { property: p } = Route.useLoaderData() as { property: Property };
   const similar = PROPERTIES.filter((x) => x.id !== p.id && x.type === p.type).slice(0, 3);
 
   return (
