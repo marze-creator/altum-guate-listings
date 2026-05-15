@@ -51,7 +51,7 @@ function PropertiesPage() {
     if (sort === "price-asc") r = [...r].sort((a, b) => a.price - b.price);
     else if (sort === "price-desc") r = [...r].sort((a, b) => b.price - a.price);
     return r;
-  }, [zones, types, maxPrice, minBeds, minBaths, sort, initial.op]);
+  }, [zones, types, maxPrice, minBeds, minBaths, sort, initial.op, source]);
 
   const toggle = (arr: string[], setArr: (v: string[]) => void, val: string) =>
     setArr(arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val]);
