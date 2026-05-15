@@ -39,7 +39,8 @@ function HomePage() {
     fetchPublishedProperties().then(setDbProps).catch(() => {});
   }, []);
   const all = dbProps.length > 0 ? dbProps : PROPERTIES;
-  const featured = (dbProps.length > 0 ? dbProps.filter((p: any) => p.featured) : PROPERTIES.filter((p) => p.badge)).slice(0, 6);
+  const featuredRaw = (dbProps.length > 0 ? dbProps.filter((p: any) => (p as any).featured) : PROPERTIES.filter((p) => p.badge));
+  const featured = (featuredRaw.length > 0 ? featuredRaw : all).slice(0, 6);
   const latest = all.slice(0, 5);
   const navigate = useNavigate();
   const [zone, setZone] = useState("");
