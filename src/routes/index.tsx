@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Award, Building2, ChevronRight, Search, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 import hero from "@/assets/hero-luxury.jpg";
-import { PROPERTIES, ZONES, PROPERTY_TYPES } from "@/lib/properties";
+import { PROPERTIES, ZONES, PROPERTY_TYPES, type Property } from "@/lib/properties";
 import { PropertyCard } from "@/components/property-card";
+import { fetchPublishedProperties } from "@/lib/properties-db";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -33,8 +34,13 @@ const TESTIMONIALS = [
 ];
 
 function HomePage() {
-  const featured = PROPERTIES.filter((p) => p.badge).slice(0, 6);
-  const latest = PROPERTIES.slice(0, 5);
+  const [dbProps, setDbProps] = useState<Property[]>([]);
+  useEffect(() => {
+    fetchPublishedProperties().then(setDbProps).catch(() => {});
+  }, []);
+  const all = dbProps.length > 0 ? dbProps : PROPERTIES;
+  const featured = (dbProps.length > 0 ? dbProps.filter((p: any) => p.featured) : PROPERTIES.filter((p) => p.badge)).slice(0, 6);
+  const latest = all.slice(0, 5);
   const navigate = useNavigate();
   const [zone, setZone] = useState("");
   const [type, setType] = useState("");

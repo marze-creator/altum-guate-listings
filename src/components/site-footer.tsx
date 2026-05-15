@@ -28,8 +28,8 @@ export function SiteFooter() {
           <h4 className="font-display font-semibold text-secondary mb-4 text-sm uppercase tracking-wider">Contacto</h4>
           <ul className="space-y-3 text-sm text-primary-foreground/80">
             <li className="flex items-start gap-2"><MapPin size={16} className="mt-0.5 text-secondary" /><span>Zona 10, Ciudad de Guatemala</span></li>
-            <li className="flex items-center gap-2"><Phone size={16} className="text-secondary" /><span>+502 2200-0000</span></li>
-            <li className="flex items-center gap-2"><Mail size={16} className="text-secondary" /><span>contacto@altumgroup.gt</span></li>
+            <li className="flex items-center gap-2"><Phone size={16} className="text-secondary" /><span suppressHydrationWarning>+502 2200-0000</span></li>
+            <li className="flex items-center gap-2"><Mail size={16} className="text-secondary" /><span suppressHydrationWarning>contacto@altumgroup.gt</span></li>
           </ul>
         </div>
 
