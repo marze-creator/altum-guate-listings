@@ -1,5 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
+import { toast } from "sonner";
 import logo from "@/assets/altum-logo.png";
 
 export const Route = createFileRoute("/vendedores/login")({
@@ -14,13 +17,27 @@ export const Route = createFileRoute("/vendedores/login")({
 });
 
 function LoginPage() {
+  const nav = useNavigate();
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
-  const [msg, setMsg] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMsg("Portal de vendedores próximamente. Activaremos autenticación con Lovable Cloud.");
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pwd });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Bienvenido");
+    nav({ to: "/vendedores/dashboard" });
+  };
+
+  const google = async () => {
+    const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: `${window.location.origin}/vendedores/dashboard` });
+    if (r.error) toast.error("Error con Google");
   };
 
   return (
@@ -32,6 +49,14 @@ function LoginPage() {
           <h1 className="font-display text-2xl text-primary mt-1">Acceso Vendedores</h1>
         </div>
 
+        <button onClick={google} type="button" className="w-full h-11 mb-4 border border-border rounded-sm font-semibold text-sm hover:bg-muted">
+          Continuar con Google
+        </button>
+        <div className="relative my-4 text-center">
+          <span className="bg-card px-2 text-xs text-muted-foreground relative z-10">o</span>
+          <span className="absolute inset-x-0 top-1/2 h-px bg-border" />
+        </div>
+
         <form onSubmit={submit} className="space-y-4">
           <label className="block">
             <span className="text-xs uppercase tracking-wider text-muted-foreground">Correo</span>
@@ -41,14 +66,13 @@ function LoginPage() {
             <span className="text-xs uppercase tracking-wider text-muted-foreground">Contraseña</span>
             <input type="password" required value={pwd} onChange={(e) => setPwd(e.target.value)} className="mt-1 w-full h-11 px-3 border border-border rounded-sm bg-background" />
           </label>
-          <button type="submit" className="w-full h-11 bg-secondary text-primary font-semibold rounded-sm hover:bg-secondary/85">
-            Iniciar Sesión
+          <button disabled={loading} type="submit" className="w-full h-11 bg-secondary text-primary font-semibold rounded-sm hover:bg-secondary/85 disabled:opacity-50">
+            {loading ? "Ingresando..." : "Iniciar Sesión"}
           </button>
-          {msg && <p className="text-xs text-center text-muted-foreground">{msg}</p>}
         </form>
 
         <p className="mt-8 text-center text-xs text-muted-foreground">
-          ¿No eres vendedor? <Link to="/" className="text-primary hover:text-secondary font-semibold">Volver al inicio</Link>
+          ¿Aún no eres vendedor? <Link to="/vendedores/signup" className="text-primary hover:text-secondary font-semibold">Regístrate</Link>
         </p>
       </div>
     </div>
