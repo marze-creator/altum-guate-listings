@@ -1,0 +1,158 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { CheckCircle2, XCircle, Eye, Mail, Phone } from "lucide-react";
+
+export const Route = createFileRoute("/_admin/admin")({
+  head: () => ({ meta: [{ title: "Admin — ALTUM GROUP" }, { name: "robots", content: "noindex" }] }),
+  component: AdminPage,
+});
+
+interface PendingProp {
+  id: string; title: string; price: number; zone: string; status: string;
+  operation: string; cover_image: string | null; created_at: string;
+}
+interface Inquiry {
+  id: string; name: string; email: string; phone: string | null;
+  message: string; created_at: string; contacted: boolean; property_id: string;
+}
+
+function AdminPage() {
+  const [tab, setTab] = useState<"pending" | "all" | "inquiries">("pending");
+  const [props, setProps] = useState<PendingProp[]>([]);
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => { load(); }, [tab]);
+
+  async function load() {
+    setLoading(true);
+    if (tab === "inquiries") {
+      const { data } = await supabase.from("inquiries").select("*").order("created_at", { ascending: false }).limit(100);
+      setInquiries((data as Inquiry[]) ?? []);
+    } else {
+      let q = supabase.from("properties").select("id,title,price,zone,status,operation,cover_image,created_at").order("created_at", { ascending: false }).limit(100);
+      if (tab === "pending") q = q.in("status", ["pending", "draft"]);
+      const { data } = await q;
+      setProps((data as PendingProp[]) ?? []);
+    }
+    setLoading(false);
+  }
+
+  async function setStatus(id: string, status: "published" | "draft") {
+    const { error } = await supabase.from("properties").update({ status }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success(status === "published" ? "Publicada" : "Devuelta a borrador");
+    load();
+  }
+  async function markContacted(id: string, v: boolean) {
+    const { error } = await supabase.from("inquiries").update({ contacted: v }).eq("id", id);
+    if (error) return toast.error(error.message);
+    load();
+  }
+
+  return (
+    <div className="container-altum py-12">
+      <p className="text-xs uppercase tracking-widest text-secondary font-semibold">Panel ALTUM</p>
+      <h1 className="font-display text-3xl text-primary mb-6">Administración</h1>
+
+      <div className="flex gap-2 mb-8 border-b border-border">
+        {[
+          { k: "pending", l: "Pendientes" },
+          { k: "all", l: "Todas" },
+          { k: "inquiries", l: "Consultas" },
+        ].map((t) => (
+          <button key={t.k} onClick={() => setTab(t.k as typeof tab)} className={`px-4 py-2.5 text-sm font-semibold ${tab === t.k ? "text-primary border-b-2 border-secondary" : "text-muted-foreground"}`}>
+            {t.l}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <p className="text-center py-12 text-muted-foreground">Cargando…</p>
+      ) : tab === "inquiries" ? (
+        <div className="space-y-3">
+          {inquiries.length === 0 && <p className="text-center py-12 text-muted-foreground">Sin consultas.</p>}
+          {inquiries.map((i) => (
+            <div key={i.id} className="bg-card border border-border rounded-sm p-5">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                  <p className="font-display font-semibold text-primary">{i.name}</p>
+                  <div className="flex gap-4 text-xs text-muted-foreground mt-1 flex-wrap">
+                    <span className="flex items-center gap-1"><Mail size={12} />{i.email}</span>
+                    {i.phone && <span className="flex items-center gap-1"><Phone size={12} />{i.phone}</span>}
+                    <span>{new Date(i.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Link to="/propiedades/$id" params={{ id: i.property_id }} className="p-2 hover:bg-muted rounded-sm" aria-label="Ver propiedad"><Eye size={14} /></Link>
+                  <button onClick={() => markContacted(i.id, !i.contacted)} className={`text-xs px-3 py-1.5 rounded-sm border ${i.contacted ? "bg-green-50 border-green-300 text-green-800" : "border-border text-muted-foreground"}`}>
+                    {i.contacted ? "Contactado" : "Marcar contactado"}
+                  </button>
+                </div>
+              </div>
+              <p className="mt-3 text-sm text-primary/80 whitespace-pre-line">{i.message}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-card border border-border rounded-sm overflow-hidden">
+          {props.length === 0 ? (
+            <p className="p-12 text-center text-muted-foreground">Sin propiedades.</p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-muted text-xs uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="text-left p-4">Propiedad</th>
+                  <th className="text-left p-4 hidden md:table-cell">Zona</th>
+                  <th className="text-left p-4">Precio</th>
+                  <th className="text-left p-4">Estado</th>
+                  <th className="text-right p-4">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {props.map((p) => (
+                  <tr key={p.id} className="border-t border-border">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        {p.cover_image && <img src={p.cover_image} alt="" className="w-12 h-12 object-cover rounded-sm" />}
+                        <div>
+                          <p className="font-semibold text-primary">{p.title}</p>
+                          <p className="text-xs text-muted-foreground capitalize">{p.operation}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4 hidden md:table-cell">{p.zone}</td>
+                    <td className="p-4 font-semibold">Q{Number(p.price).toLocaleString()}</td>
+                    <td className="p-4">
+                      <span className={`text-xs px-2 py-1 rounded-sm ${
+                        p.status === "published" ? "bg-green-100 text-green-800" :
+                        p.status === "pending" ? "bg-amber-100 text-amber-800" :
+                        "bg-gray-100 text-gray-700"
+                      }`}>{p.status}</span>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex justify-end gap-2">
+                        <Link to="/propiedades/$id" params={{ id: p.id }} className="p-2 hover:bg-muted rounded-sm"><Eye size={14} /></Link>
+                        {p.status !== "published" ? (
+                          <button onClick={() => setStatus(p.id, "published")} className="inline-flex items-center gap-1 text-xs px-3 py-1.5 bg-secondary text-primary font-semibold rounded-sm">
+                            <CheckCircle2 size={12} /> Aprobar
+                          </button>
+                        ) : (
+                          <button onClick={() => setStatus(p.id, "draft")} className="inline-flex items-center gap-1 text-xs px-3 py-1.5 border border-border rounded-sm">
+                            <XCircle size={12} /> Despublicar
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

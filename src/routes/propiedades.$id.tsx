@@ -1,58 +1,84 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Bath, BedDouble, Check, MapPin, Maximize, Star } from "lucide-react";
 import { PROPERTIES, formatGTQ, type Property } from "@/lib/properties";
 import { PropertyCard } from "@/components/property-card";
+import { fetchPropertyById, fetchPublishedProperties } from "@/lib/properties-db";
+import { InquiryForm } from "@/components/inquiry-form";
 
 export const Route = createFileRoute("/propiedades/$id")({
-  loader: ({ params }): { property: (typeof PROPERTIES)[number] } => {
-    const property = PROPERTIES.find((p) => p.id === params.id);
-    if (!property) throw notFound();
-    return { property };
-  },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [
-          { title: `${loaderData.property.title} — ALTUM GROUP` },
-          { name: "description", content: loaderData.property.description },
-          { property: "og:title", content: loaderData.property.title },
-          { property: "og:image", content: loaderData.property.image },
-        ]
-      : [],
+  head: () => ({
+    meta: [{ title: "Propiedad — ALTUM GROUP" }],
   }),
   component: PropertyDetail,
-  notFoundComponent: () => (
-    <div className="container-altum py-32 text-center">
-      <h1 className="font-display text-3xl text-primary">Propiedad no encontrada</h1>
-      <Link to="/propiedades" className="mt-4 inline-block text-secondary hover:underline">Ver catálogo</Link>
-    </div>
-  ),
-  errorComponent: () => <div className="container-altum py-32 text-center">Error cargando la propiedad.</div>,
 });
 
 function PropertyDetail() {
-  const { property: p } = Route.useLoaderData() as { property: Property };
-  const similar = PROPERTIES.filter((x) => x.id !== p.id && x.type === p.type).slice(0, 3);
+  const { id } = Route.useParams();
+  const [p, setP] = useState<(Property & { images?: string[] }) | null>(null);
+  const [similar, setSimilar] = useState<Property[]>([]);
+  const [notFound, setNotFound] = useState(false);
+  const [activeImg, setActiveImg] = useState(0);
+
+  useEffect(() => {
+    let canceled = false;
+    (async () => {
+      // Try DB first
+      try {
+        const db = await fetchPropertyById(id);
+        if (canceled) return;
+        if (db) {
+          setP(db);
+          const all = await fetchPublishedProperties();
+          if (!canceled) setSimilar(all.filter((x) => x.id !== db.id && x.type === db.type).slice(0, 3));
+          return;
+        }
+      } catch {}
+      // Fallback to mock
+      const mock = PROPERTIES.find((x) => x.id === id);
+      if (canceled) return;
+      if (mock) {
+        setP(mock);
+        setSimilar(PROPERTIES.filter((x) => x.id !== mock.id && x.type === mock.type).slice(0, 3));
+      } else setNotFound(true);
+    })();
+    return () => { canceled = true; };
+  }, [id]);
+
+  if (notFound) {
+    return (
+      <div className="container-altum py-32 text-center">
+        <h1 className="font-display text-3xl text-primary">Propiedad no encontrada</h1>
+        <Link to="/propiedades" className="mt-4 inline-block text-secondary hover:underline">Ver catálogo</Link>
+      </div>
+    );
+  }
+  if (!p) {
+    return <div className="container-altum py-32 text-center text-muted-foreground">Cargando…</div>;
+  }
+
+  const images = p.images && p.images.length ? p.images : [p.image];
 
   return (
     <div className="container-altum py-10">
       <Link to="/propiedades" className="text-sm text-muted-foreground hover:text-primary">← Volver al catálogo</Link>
 
       <div className="mt-6 grid gap-10 lg:grid-cols-[1.6fr_1fr]">
-        {/* GALLERY */}
         <div>
           <div className="aspect-[16/10] overflow-hidden rounded-sm bg-muted">
-            <img src={p.image} alt={p.title} width={1280} height={800} className="w-full h-full object-cover" />
+            <img src={images[activeImg] || p.image} alt={p.title} className="w-full h-full object-cover" />
           </div>
-          <div className="mt-3 grid grid-cols-4 gap-3">
-            {[p.image, p.image, p.image, p.image].map((src, i) => (
-              <div key={i} className="aspect-[4/3] overflow-hidden rounded-sm border border-border opacity-80 hover:opacity-100 cursor-pointer">
-                <img src={src} alt="" loading="lazy" width={400} height={300} className="w-full h-full object-cover" />
-              </div>
-            ))}
-          </div>
+          {images.length > 1 && (
+            <div className="mt-3 grid grid-cols-4 gap-3">
+              {images.slice(0, 8).map((src, i) => (
+                <button key={i} onClick={() => setActiveImg(i)} className={`aspect-[4/3] overflow-hidden rounded-sm border ${i === activeImg ? "border-secondary" : "border-border opacity-80"}`}>
+                  <img src={src} alt="" loading="lazy" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* INFO */}
         <aside className="space-y-6">
           <div>
             {p.badge && <span className="badge-altum mb-3">{p.badge}</span>}
@@ -72,7 +98,6 @@ function PropertyDetail() {
             <Spec label="Operación" value={p.operation === "venta" ? "Venta" : "Renta"} />
           </div>
 
-          {/* AGENT */}
           <div className="p-6 bg-card border border-border rounded-sm">
             <p className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Asesor Certificado ALTUM GROUP</p>
             <div className="flex items-center gap-4">
@@ -89,31 +114,33 @@ function PropertyDetail() {
               </div>
             </div>
             <a href="https://wa.me/50220000000" target="_blank" rel="noreferrer" className="mt-4 block text-center py-3 bg-secondary text-primary font-semibold text-sm uppercase tracking-wider rounded-sm hover:bg-secondary/85">
-              Contactar Agente
+              Contactar por WhatsApp
             </a>
           </div>
+
+          <InquiryForm propertyId={p.id} propertyTitle={p.title} />
         </aside>
       </div>
 
-      {/* DESCRIPTION + AMENITIES */}
       <div className="mt-16 grid gap-12 lg:grid-cols-2">
         <div>
           <h2 className="font-display text-2xl text-primary mb-4">Descripción</h2>
-          <p className="text-primary/80 leading-relaxed">{p.description}</p>
+          <p className="text-primary/80 leading-relaxed whitespace-pre-line">{p.description}</p>
         </div>
-        <div>
-          <h2 className="font-display text-2xl text-primary mb-4">Amenidades</h2>
-          <ul className="grid grid-cols-2 gap-3">
-            {p.amenities.map((a) => (
-              <li key={a} className="flex items-center gap-2 text-sm text-primary/85">
-                <Check size={16} className="text-secondary" /> {a}
-              </li>
-            ))}
-          </ul>
-        </div>
+        {p.amenities.length > 0 && (
+          <div>
+            <h2 className="font-display text-2xl text-primary mb-4">Amenidades</h2>
+            <ul className="grid grid-cols-2 gap-3">
+              {p.amenities.map((a) => (
+                <li key={a} className="flex items-center gap-2 text-sm text-primary/85">
+                  <Check size={16} className="text-secondary" /> {a}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
-      {/* MAP */}
       <div className="mt-16">
         <h2 className="font-display text-2xl text-primary mb-4">Ubicación</h2>
         <div className="aspect-[16/7] rounded-sm overflow-hidden border border-border">
@@ -126,7 +153,6 @@ function PropertyDetail() {
         </div>
       </div>
 
-      {/* SIMILAR */}
       {similar.length > 0 && (
         <div className="mt-20">
           <h2 className="font-display text-2xl text-primary mb-8">Propiedades similares</h2>

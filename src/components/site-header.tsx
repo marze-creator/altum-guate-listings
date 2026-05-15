@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
-import { Menu, X, LayoutDashboard, LogOut } from "lucide-react";
+import { Menu, X, LayoutDashboard, LogOut, Shield } from "lucide-react";
 import logo from "@/assets/altum-logo.png";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -16,7 +16,7 @@ const NAV = [
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const { user, isVendedor, signOut } = useAuth();
+  const { user, isVendedor, isAdmin, signOut } = useAuth();
 
   return (
     <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-md border-b border-border">
@@ -48,6 +48,11 @@ export function SiteHeader() {
         <div className="flex items-center gap-3">
           {user && isVendedor ? (
             <>
+              {isAdmin && (
+                <Link to="/admin" className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-sm border border-secondary text-primary hover:bg-secondary/15 transition-colors">
+                  <Shield size={14} /> Admin
+                </Link>
+              )}
               <Link to="/vendedores/dashboard" className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-sm bg-secondary text-primary hover:bg-secondary/80 transition-colors">
                 <LayoutDashboard size={14} /> Dashboard
               </Link>

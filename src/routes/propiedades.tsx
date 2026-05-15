@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Grid3x3, List, X } from "lucide-react";
-import { PROPERTIES, ZONES, PROPERTY_TYPES, formatGTQ, type Operation } from "@/lib/properties";
+import { PROPERTIES, ZONES, PROPERTY_TYPES, formatGTQ, type Operation, type Property } from "@/lib/properties";
 import { PropertyCard } from "@/components/property-card";
+import { fetchPublishedProperties } from "@/lib/properties-db";
 
 export const Route = createFileRoute("/propiedades")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -33,8 +34,12 @@ function PropertiesPage() {
   const [view, setView] = useState<"grid" | "list">("grid");
   const [sort, setSort] = useState<"recent" | "price-asc" | "price-desc">("recent");
 
+  const [dbProps, setDbProps] = useState<Property[] | null>(null);
+  useEffect(() => { fetchPublishedProperties().then(setDbProps).catch(() => setDbProps([])); }, []);
+  const source = dbProps && dbProps.length > 0 ? dbProps : (dbProps === null ? PROPERTIES : PROPERTIES);
+
   const filtered = useMemo(() => {
-    let r = PROPERTIES.filter((p) => {
+    let r = source.filter((p) => {
       if (initial.op && p.operation !== initial.op) return false;
       if (zones.length && !zones.includes(p.zone)) return false;
       if (types.length && !types.includes(p.type)) return false;
@@ -46,7 +51,7 @@ function PropertiesPage() {
     if (sort === "price-asc") r = [...r].sort((a, b) => a.price - b.price);
     else if (sort === "price-desc") r = [...r].sort((a, b) => b.price - a.price);
     return r;
-  }, [zones, types, maxPrice, minBeds, minBaths, sort, initial.op]);
+  }, [zones, types, maxPrice, minBeds, minBaths, sort, initial.op, source]);
 
   const toggle = (arr: string[], setArr: (v: string[]) => void, val: string) =>
     setArr(arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val]);

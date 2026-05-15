@@ -129,4 +129,8 @@
     background-color: var(--color-secondary);
     color: var(--color-primary);
   }
+  .input-altum {
+    @apply w-full h-10 px-3 border border-border rounded-sm bg-background text-sm focus:outline-none focus:border-secondary;
+  }
+  textarea.input-altum { @apply h-auto py-2; }
 }
