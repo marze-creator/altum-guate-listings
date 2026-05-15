@@ -1,9 +1,5 @@
-import { createFileRoute, Link, Outlet, Navigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { createFileRoute, Outlet, Navigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
-import { toast } from "sonner";
-import { CheckCircle2, XCircle, Mail, Phone, Eye } from "lucide-react";
 
 export const Route = createFileRoute("/_admin")({
   component: AdminLayout,
@@ -24,10 +20,4 @@ function AdminLayout() {
     );
   }
   return <Outlet />;
-}
-
-export { AdminPanel };
-
-function AdminPanel() {
-  return null;
 }

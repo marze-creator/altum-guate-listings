@@ -139,9 +139,9 @@ function Dashboard() {
                       <Link to="/propiedades/$id" params={{ id: p.id }} className="p-2 hover:bg-muted rounded-sm" aria-label="Ver">
                         <Eye size={16} />
                       </Link>
-                      <button className="p-2 hover:bg-muted rounded-sm" aria-label="Editar" disabled>
+                      <Link to="/vendedores/propiedades/$id/editar" params={{ id: p.id }} className="p-2 hover:bg-muted rounded-sm" aria-label="Editar">
                         <Edit size={16} />
-                      </button>
+                      </Link>
                       <button onClick={() => remove(p.id)} className="p-2 hover:bg-muted rounded-sm text-red-600" aria-label="Eliminar">
                         <Trash2 size={16} />
                       </button>
