@@ -94,6 +94,7 @@ function AdminPage() {
           { k: "pending", l: "Pendientes" },
           { k: "all", l: "Todas" },
           { k: "inquiries", l: "Consultas" },
+          { k: "requests", l: "Acceso admin" },
         ].map((t) => (
           <button key={t.k} onClick={() => setTab(t.k as typeof tab)} className={`px-4 py-2.5 text-sm font-semibold ${tab === t.k ? "text-primary border-b-2 border-secondary" : "text-muted-foreground"}`}>
             {t.l}
