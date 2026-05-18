@@ -24,10 +24,12 @@ interface AdminReqRow {
 }
 
 function AdminPage() {
-  const [tab, setTab] = useState<"pending" | "all" | "inquiries">("pending");
+  const [tab, setTab] = useState<"pending" | "all" | "inquiries" | "requests">("pending");
   const [props, setProps] = useState<PendingProp[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [requests, setRequests] = useState<AdminReqRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notesById, setNotesById] = useState<Record<string, string>>({});
 
   useEffect(() => { load(); }, [tab]);
 
@@ -36,6 +38,21 @@ function AdminPage() {
     if (tab === "inquiries") {
       const { data } = await supabase.from("inquiries").select("*").order("created_at", { ascending: false }).limit(100);
       setInquiries((data as Inquiry[]) ?? []);
+    } else if (tab === "requests") {
+      const { data } = await supabase
+        .from("admin_requests")
+        .select("id,user_id,reason,status,created_at,admin_notes")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      const rows = (data as AdminReqRow[]) ?? [];
+      // hydrate profile info
+      if (rows.length) {
+        const ids = [...new Set(rows.map((r) => r.user_id))];
+        const { data: profs } = await supabase.from("profiles").select("user_id,full_name,phone").in("user_id", ids);
+        const map = new Map((profs ?? []).map((p) => [p.user_id, p]));
+        rows.forEach((r) => { r.profile = (map.get(r.user_id) as any) ?? null; });
+      }
+      setRequests(rows);
     } else {
       let q = supabase.from("properties").select("id,title,price,zone,status,operation,cover_image,created_at").order("created_at", { ascending: false }).limit(100);
       if (tab === "pending") q = q.in("status", ["pending", "draft"]);
@@ -54,6 +71,16 @@ function AdminPage() {
   async function markContacted(id: string, v: boolean) {
     const { error } = await supabase.from("inquiries").update({ contacted: v }).eq("id", id);
     if (error) return toast.error(error.message);
+    load();
+  }
+  async function reviewRequest(id: string, status: "approved" | "rejected") {
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from("admin_requests")
+      .update({ status, admin_notes: notesById[id] ?? null, reviewed_by: u.user?.id ?? null })
+      .eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success(status === "approved" ? "Solicitud aprobada — rol asignado" : "Solicitud rechazada");
     load();
   }
 
