@@ -3,12 +3,14 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, Eye, LogOut } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, LogOut, ShieldCheck, MailCheck, MailWarning, Clock, CheckCircle2, XCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_vendedor/vendedores/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — ALTUM GROUP" }, { name: "robots", content: "noindex" }] }),
   component: Dashboard,
 });
+
+interface AdminReq { id: string; status: "pending" | "approved" | "rejected"; reason: string; created_at: string; admin_notes: string | null; }
 
 interface Prop {
   id: string;
