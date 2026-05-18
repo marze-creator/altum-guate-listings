@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_requests: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          id: string
+          reason: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["admin_request_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          reason: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["admin_request_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          reason?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["admin_request_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       inquiries: {
         Row: {
           contacted: boolean
@@ -248,6 +284,7 @@ export type Database = {
       }
     }
     Enums: {
+      admin_request_status: "pending" | "approved" | "rejected"
       app_role: "admin" | "vendedor" | "cliente"
       property_operation: "venta" | "renta"
       property_status:
@@ -391,6 +428,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      admin_request_status: ["pending", "approved", "rejected"],
       app_role: ["admin", "vendedor", "cliente"],
       property_operation: ["venta", "renta"],
       property_status: [
