@@ -24,13 +24,20 @@ interface Prop {
 }
 
 function Dashboard() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
   const [props, setProps] = useState<Prop[]>([]);
   const [loading, setLoading] = useState(true);
+  const [adminReq, setAdminReq] = useState<AdminReq | null>(null);
+  const [requesting, setRequesting] = useState(false);
+  const [reason, setReason] = useState("");
+  const [showForm, setShowForm] = useState(false);
+
+  const emailConfirmed = !!user?.email_confirmed_at;
 
   useEffect(() => {
     if (!user) return;
     load();
+    loadAdminReq();
   }, [user]);
 
   async function load() {
@@ -43,6 +50,37 @@ function Dashboard() {
     if (error) toast.error(error.message);
     setProps(data ?? []);
     setLoading(false);
+  }
+
+  async function loadAdminReq() {
+    if (isAdmin) return;
+    const { data } = await supabase
+      .from("admin_requests")
+      .select("id,status,reason,created_at,admin_notes")
+      .eq("user_id", user!.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setAdminReq((data as AdminReq) ?? null);
+  }
+
+  async function submitAdminRequest() {
+    if (reason.trim().length < 10) return toast.error("Explica brevemente tu solicitud (mín. 10 caracteres).");
+    if (reason.length > 1000) return toast.error("Máximo 1000 caracteres.");
+    setRequesting(true);
+    const { error } = await supabase.from("admin_requests").insert({ user_id: user!.id, reason: reason.trim() });
+    setRequesting(false);
+    if (error) return toast.error(error.message);
+    toast.success("Solicitud enviada. Un administrador la revisará.");
+    setReason("");
+    setShowForm(false);
+    loadAdminReq();
+  }
+
+  async function resendVerification() {
+    const { error } = await supabase.auth.resend({ type: "signup", email: user!.email! });
+    if (error) return toast.error(error.message);
+    toast.success("Correo de verificación reenviado.");
   }
 
   async function remove(id: string) {
