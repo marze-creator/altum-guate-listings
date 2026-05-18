@@ -129,6 +129,54 @@ function AdminPage() {
             </div>
           ))}
         </div>
+      ) : tab === "requests" ? (
+        <div className="space-y-3">
+          {requests.length === 0 && <p className="text-center py-12 text-muted-foreground">Sin solicitudes.</p>}
+          {requests.map((r) => (
+            <div key={r.id} className="bg-card border border-border rounded-sm p-5">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div className="min-w-0">
+                  <p className="font-display font-semibold text-primary flex items-center gap-2">
+                    <ShieldCheck size={16} className="text-secondary" />
+                    {r.profile?.full_name ?? "Vendedor"}
+                  </p>
+                  <div className="flex gap-4 text-xs text-muted-foreground mt-1 flex-wrap">
+                    {r.profile?.phone && <span className="flex items-center gap-1"><Phone size={12} />{r.profile.phone}</span>}
+                    <span>{new Date(r.created_at).toLocaleDateString()}</span>
+                    <span className={`px-2 py-0.5 rounded-sm ${
+                      r.status === "pending" ? "bg-amber-100 text-amber-800" :
+                      r.status === "approved" ? "bg-green-100 text-green-800" :
+                      "bg-red-100 text-red-800"
+                    }`}>{r.status}</span>
+                  </div>
+                </div>
+              </div>
+              <p className="mt-3 text-sm text-primary/80 whitespace-pre-line border-l-2 border-secondary pl-3">{r.reason}</p>
+              {r.admin_notes && r.status !== "pending" && (
+                <p className="mt-2 text-xs italic text-muted-foreground">Nota: {r.admin_notes}</p>
+              )}
+              {r.status === "pending" && (
+                <div className="mt-4 space-y-2">
+                  <input
+                    type="text"
+                    placeholder="Nota interna (opcional)…"
+                    value={notesById[r.id] ?? ""}
+                    onChange={(e) => setNotesById((s) => ({ ...s, [r.id]: e.target.value }))}
+                    className="w-full text-xs px-3 py-2 border border-border rounded-sm bg-background"
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <button onClick={() => reviewRequest(r.id, "rejected")} className="inline-flex items-center gap-1 text-xs px-3 py-1.5 border border-border rounded-sm">
+                      <XCircle size={12} /> Rechazar
+                    </button>
+                    <button onClick={() => reviewRequest(r.id, "approved")} className="inline-flex items-center gap-1 text-xs px-3 py-1.5 bg-secondary text-primary font-semibold rounded-sm">
+                      <CheckCircle2 size={12} /> Aprobar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="bg-card border border-border rounded-sm overflow-hidden">
           {props.length === 0 ? (
