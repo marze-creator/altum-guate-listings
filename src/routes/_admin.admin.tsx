@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Eye, Mail, Phone } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, Mail, Phone, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/_admin/admin")({
   head: () => ({ meta: [{ title: "Admin — ALTUM GROUP" }, { name: "robots", content: "noindex" }] }),
@@ -16,6 +16,11 @@ interface PendingProp {
 interface Inquiry {
   id: string; name: string; email: string; phone: string | null;
   message: string; created_at: string; contacted: boolean; property_id: string;
+}
+interface AdminReqRow {
+  id: string; user_id: string; reason: string; status: "pending" | "approved" | "rejected";
+  created_at: string; admin_notes: string | null;
+  profile?: { full_name: string | null; phone: string | null } | null;
 }
 
 function AdminPage() {
