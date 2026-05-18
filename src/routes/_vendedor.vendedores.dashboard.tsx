@@ -116,6 +116,75 @@ function Dashboard() {
         </div>
       </div>
 
+      {/* Email verification status */}
+      <div className={`mb-4 rounded-sm border p-4 flex items-start gap-3 ${emailConfirmed ? "bg-green-50 border-green-200" : "bg-amber-50 border-amber-300"}`}>
+        {emailConfirmed ? <MailCheck className="text-green-700 shrink-0" size={20} /> : <MailWarning className="text-amber-700 shrink-0" size={20} />}
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm font-semibold ${emailConfirmed ? "text-green-900" : "text-amber-900"}`}>
+            {emailConfirmed ? "Correo verificado" : "Correo sin verificar"}
+          </p>
+          <p className={`text-xs mt-0.5 ${emailConfirmed ? "text-green-800" : "text-amber-800"}`}>
+            {emailConfirmed
+              ? `Confirmado el ${new Date(user!.email_confirmed_at!).toLocaleDateString()}`
+              : "Confirma tu correo para activar todas las funcionalidades de tu cuenta."}
+          </p>
+        </div>
+        {!emailConfirmed && (
+          <button onClick={resendVerification} className="text-xs font-semibold px-3 py-1.5 bg-amber-700 text-white rounded-sm hover:bg-amber-800">
+            Reenviar correo
+          </button>
+        )}
+      </div>
+
+      {/* Admin access request */}
+      {!isAdmin && (
+        <div className="mb-8 bg-card border border-border rounded-sm p-5">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="text-secondary shrink-0" size={20} />
+            <div className="flex-1 min-w-0">
+              <p className="font-display font-semibold text-primary">Acceso administrativo</p>
+              {!adminReq && (
+                <p className="text-xs text-muted-foreground mt-0.5">Solicita permisos de administrador para aprobar propiedades y gestionar consultas.</p>
+              )}
+              {adminReq?.status === "pending" && (
+                <p className="text-xs text-amber-700 mt-1 flex items-center gap-1.5"><Clock size={12} /> Solicitud en revisión desde el {new Date(adminReq.created_at).toLocaleDateString()}.</p>
+              )}
+              {adminReq?.status === "rejected" && (
+                <div className="text-xs text-red-700 mt-1">
+                  <p className="flex items-center gap-1.5"><XCircle size={12} /> Solicitud rechazada.</p>
+                  {adminReq.admin_notes && <p className="mt-1 italic">"{adminReq.admin_notes}"</p>}
+                </div>
+              )}
+              {adminReq?.status === "approved" && (
+                <p className="text-xs text-green-700 mt-1 flex items-center gap-1.5"><CheckCircle2 size={12} /> Aprobada. Recarga la sesión para ver el panel admin.</p>
+              )}
+            </div>
+            {(!adminReq || adminReq.status === "rejected") && !showForm && (
+              <button onClick={() => setShowForm(true)} className="text-xs font-semibold px-3 py-1.5 border border-secondary text-primary rounded-sm hover:bg-secondary/10">
+                Solicitar acceso
+              </button>
+            )}
+          </div>
+          {showForm && (
+            <div className="mt-4 space-y-2">
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                maxLength={1000}
+                placeholder="Cuéntanos por qué necesitas acceso administrativo (mín. 10 caracteres)…"
+                className="w-full min-h-[100px] rounded-sm border border-border bg-background p-3 text-sm"
+              />
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => { setShowForm(false); setReason(""); }} className="text-xs px-3 py-1.5 border border-border rounded-sm">Cancelar</button>
+                <button onClick={submitAdminRequest} disabled={requesting} className="text-xs font-semibold px-3 py-1.5 bg-secondary text-primary rounded-sm disabled:opacity-50">
+                  {requesting ? "Enviando…" : "Enviar solicitud"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
           { l: "Total", v: stats.total },
