@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Eye, Mail, Phone } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, Mail, Phone, ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/_admin/admin")({
   head: () => ({ meta: [{ title: "Admin — ALTUM GROUP" }, { name: "robots", content: "noindex" }] }),
@@ -17,12 +17,19 @@ interface Inquiry {
   id: string; name: string; email: string; phone: string | null;
   message: string; created_at: string; contacted: boolean; property_id: string;
 }
+interface AdminReqRow {
+  id: string; user_id: string; reason: string; status: "pending" | "approved" | "rejected";
+  created_at: string; admin_notes: string | null;
+  profile?: { full_name: string | null; phone: string | null } | null;
+}
 
 function AdminPage() {
-  const [tab, setTab] = useState<"pending" | "all" | "inquiries">("pending");
+  const [tab, setTab] = useState<"pending" | "all" | "inquiries" | "requests">("pending");
   const [props, setProps] = useState<PendingProp[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [requests, setRequests] = useState<AdminReqRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notesById, setNotesById] = useState<Record<string, string>>({});
 
   useEffect(() => { load(); }, [tab]);
 
@@ -31,6 +38,21 @@ function AdminPage() {
     if (tab === "inquiries") {
       const { data } = await supabase.from("inquiries").select("*").order("created_at", { ascending: false }).limit(100);
       setInquiries((data as Inquiry[]) ?? []);
+    } else if (tab === "requests") {
+      const { data } = await supabase
+        .from("admin_requests")
+        .select("id,user_id,reason,status,created_at,admin_notes")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      const rows = (data as AdminReqRow[]) ?? [];
+      // hydrate profile info
+      if (rows.length) {
+        const ids = [...new Set(rows.map((r) => r.user_id))];
+        const { data: profs } = await supabase.from("profiles").select("user_id,full_name,phone").in("user_id", ids);
+        const map = new Map((profs ?? []).map((p) => [p.user_id, p]));
+        rows.forEach((r) => { r.profile = (map.get(r.user_id) as any) ?? null; });
+      }
+      setRequests(rows);
     } else {
       let q = supabase.from("properties").select("id,title,price,zone,status,operation,cover_image,created_at").order("created_at", { ascending: false }).limit(100);
       if (tab === "pending") q = q.in("status", ["pending", "draft"]);
@@ -51,6 +73,16 @@ function AdminPage() {
     if (error) return toast.error(error.message);
     load();
   }
+  async function reviewRequest(id: string, status: "approved" | "rejected") {
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from("admin_requests")
+      .update({ status, admin_notes: notesById[id] ?? null, reviewed_by: u.user?.id ?? null })
+      .eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success(status === "approved" ? "Solicitud aprobada — rol asignado" : "Solicitud rechazada");
+    load();
+  }
 
   return (
     <div className="container-altum py-12">
@@ -62,6 +94,7 @@ function AdminPage() {
           { k: "pending", l: "Pendientes" },
           { k: "all", l: "Todas" },
           { k: "inquiries", l: "Consultas" },
+          { k: "requests", l: "Acceso admin" },
         ].map((t) => (
           <button key={t.k} onClick={() => setTab(t.k as typeof tab)} className={`px-4 py-2.5 text-sm font-semibold ${tab === t.k ? "text-primary border-b-2 border-secondary" : "text-muted-foreground"}`}>
             {t.l}
@@ -93,6 +126,54 @@ function AdminPage() {
                 </div>
               </div>
               <p className="mt-3 text-sm text-primary/80 whitespace-pre-line">{i.message}</p>
+            </div>
+          ))}
+        </div>
+      ) : tab === "requests" ? (
+        <div className="space-y-3">
+          {requests.length === 0 && <p className="text-center py-12 text-muted-foreground">Sin solicitudes.</p>}
+          {requests.map((r) => (
+            <div key={r.id} className="bg-card border border-border rounded-sm p-5">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div className="min-w-0">
+                  <p className="font-display font-semibold text-primary flex items-center gap-2">
+                    <ShieldCheck size={16} className="text-secondary" />
+                    {r.profile?.full_name ?? "Vendedor"}
+                  </p>
+                  <div className="flex gap-4 text-xs text-muted-foreground mt-1 flex-wrap">
+                    {r.profile?.phone && <span className="flex items-center gap-1"><Phone size={12} />{r.profile.phone}</span>}
+                    <span>{new Date(r.created_at).toLocaleDateString()}</span>
+                    <span className={`px-2 py-0.5 rounded-sm ${
+                      r.status === "pending" ? "bg-amber-100 text-amber-800" :
+                      r.status === "approved" ? "bg-green-100 text-green-800" :
+                      "bg-red-100 text-red-800"
+                    }`}>{r.status}</span>
+                  </div>
+                </div>
+              </div>
+              <p className="mt-3 text-sm text-primary/80 whitespace-pre-line border-l-2 border-secondary pl-3">{r.reason}</p>
+              {r.admin_notes && r.status !== "pending" && (
+                <p className="mt-2 text-xs italic text-muted-foreground">Nota: {r.admin_notes}</p>
+              )}
+              {r.status === "pending" && (
+                <div className="mt-4 space-y-2">
+                  <input
+                    type="text"
+                    placeholder="Nota interna (opcional)…"
+                    value={notesById[r.id] ?? ""}
+                    onChange={(e) => setNotesById((s) => ({ ...s, [r.id]: e.target.value }))}
+                    className="w-full text-xs px-3 py-2 border border-border rounded-sm bg-background"
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <button onClick={() => reviewRequest(r.id, "rejected")} className="inline-flex items-center gap-1 text-xs px-3 py-1.5 border border-border rounded-sm">
+                      <XCircle size={12} /> Rechazar
+                    </button>
+                    <button onClick={() => reviewRequest(r.id, "approved")} className="inline-flex items-center gap-1 text-xs px-3 py-1.5 bg-secondary text-primary font-semibold rounded-sm">
+                      <CheckCircle2 size={12} /> Aprobar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

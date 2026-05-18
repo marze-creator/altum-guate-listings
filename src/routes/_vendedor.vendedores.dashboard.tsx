@@ -3,12 +3,14 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, Eye, LogOut } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, LogOut, ShieldCheck, MailCheck, MailWarning, Clock, CheckCircle2, XCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_vendedor/vendedores/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — ALTUM GROUP" }, { name: "robots", content: "noindex" }] }),
   component: Dashboard,
 });
+
+interface AdminReq { id: string; status: "pending" | "approved" | "rejected"; reason: string; created_at: string; admin_notes: string | null; }
 
 interface Prop {
   id: string;
@@ -22,13 +24,20 @@ interface Prop {
 }
 
 function Dashboard() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
   const [props, setProps] = useState<Prop[]>([]);
   const [loading, setLoading] = useState(true);
+  const [adminReq, setAdminReq] = useState<AdminReq | null>(null);
+  const [requesting, setRequesting] = useState(false);
+  const [reason, setReason] = useState("");
+  const [showForm, setShowForm] = useState(false);
+
+  const emailConfirmed = !!user?.email_confirmed_at;
 
   useEffect(() => {
     if (!user) return;
     load();
+    loadAdminReq();
   }, [user]);
 
   async function load() {
@@ -41,6 +50,37 @@ function Dashboard() {
     if (error) toast.error(error.message);
     setProps(data ?? []);
     setLoading(false);
+  }
+
+  async function loadAdminReq() {
+    if (isAdmin) return;
+    const { data } = await supabase
+      .from("admin_requests")
+      .select("id,status,reason,created_at,admin_notes")
+      .eq("user_id", user!.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setAdminReq((data as AdminReq) ?? null);
+  }
+
+  async function submitAdminRequest() {
+    if (reason.trim().length < 10) return toast.error("Explica brevemente tu solicitud (mín. 10 caracteres).");
+    if (reason.length > 1000) return toast.error("Máximo 1000 caracteres.");
+    setRequesting(true);
+    const { error } = await supabase.from("admin_requests").insert({ user_id: user!.id, reason: reason.trim() });
+    setRequesting(false);
+    if (error) return toast.error(error.message);
+    toast.success("Solicitud enviada. Un administrador la revisará.");
+    setReason("");
+    setShowForm(false);
+    loadAdminReq();
+  }
+
+  async function resendVerification() {
+    const { error } = await supabase.auth.resend({ type: "signup", email: user!.email! });
+    if (error) return toast.error(error.message);
+    toast.success("Correo de verificación reenviado.");
   }
 
   async function remove(id: string) {
@@ -75,6 +115,75 @@ function Dashboard() {
           </button>
         </div>
       </div>
+
+      {/* Email verification status */}
+      <div className={`mb-4 rounded-sm border p-4 flex items-start gap-3 ${emailConfirmed ? "bg-green-50 border-green-200" : "bg-amber-50 border-amber-300"}`}>
+        {emailConfirmed ? <MailCheck className="text-green-700 shrink-0" size={20} /> : <MailWarning className="text-amber-700 shrink-0" size={20} />}
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm font-semibold ${emailConfirmed ? "text-green-900" : "text-amber-900"}`}>
+            {emailConfirmed ? "Correo verificado" : "Correo sin verificar"}
+          </p>
+          <p className={`text-xs mt-0.5 ${emailConfirmed ? "text-green-800" : "text-amber-800"}`}>
+            {emailConfirmed
+              ? `Confirmado el ${new Date(user!.email_confirmed_at!).toLocaleDateString()}`
+              : "Confirma tu correo para activar todas las funcionalidades de tu cuenta."}
+          </p>
+        </div>
+        {!emailConfirmed && (
+          <button onClick={resendVerification} className="text-xs font-semibold px-3 py-1.5 bg-amber-700 text-white rounded-sm hover:bg-amber-800">
+            Reenviar correo
+          </button>
+        )}
+      </div>
+
+      {/* Admin access request */}
+      {!isAdmin && (
+        <div className="mb-8 bg-card border border-border rounded-sm p-5">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="text-secondary shrink-0" size={20} />
+            <div className="flex-1 min-w-0">
+              <p className="font-display font-semibold text-primary">Acceso administrativo</p>
+              {!adminReq && (
+                <p className="text-xs text-muted-foreground mt-0.5">Solicita permisos de administrador para aprobar propiedades y gestionar consultas.</p>
+              )}
+              {adminReq?.status === "pending" && (
+                <p className="text-xs text-amber-700 mt-1 flex items-center gap-1.5"><Clock size={12} /> Solicitud en revisión desde el {new Date(adminReq.created_at).toLocaleDateString()}.</p>
+              )}
+              {adminReq?.status === "rejected" && (
+                <div className="text-xs text-red-700 mt-1">
+                  <p className="flex items-center gap-1.5"><XCircle size={12} /> Solicitud rechazada.</p>
+                  {adminReq.admin_notes && <p className="mt-1 italic">"{adminReq.admin_notes}"</p>}
+                </div>
+              )}
+              {adminReq?.status === "approved" && (
+                <p className="text-xs text-green-700 mt-1 flex items-center gap-1.5"><CheckCircle2 size={12} /> Aprobada. Recarga la sesión para ver el panel admin.</p>
+              )}
+            </div>
+            {(!adminReq || adminReq.status === "rejected") && !showForm && (
+              <button onClick={() => setShowForm(true)} className="text-xs font-semibold px-3 py-1.5 border border-secondary text-primary rounded-sm hover:bg-secondary/10">
+                Solicitar acceso
+              </button>
+            )}
+          </div>
+          {showForm && (
+            <div className="mt-4 space-y-2">
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                maxLength={1000}
+                placeholder="Cuéntanos por qué necesitas acceso administrativo (mín. 10 caracteres)…"
+                className="w-full min-h-[100px] rounded-sm border border-border bg-background p-3 text-sm"
+              />
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => { setShowForm(false); setReason(""); }} className="text-xs px-3 py-1.5 border border-border rounded-sm">Cancelar</button>
+                <button onClick={submitAdminRequest} disabled={requesting} className="text-xs font-semibold px-3 py-1.5 bg-secondary text-primary rounded-sm disabled:opacity-50">
+                  {requesting ? "Enviando…" : "Enviar solicitud"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
