@@ -2,7 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Eye, Mail, Phone, ShieldCheck } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, Mail, Phone, ShieldCheck, Send, Home } from "lucide-react";
+
+interface Submission {
+  id: string; contact_name: string; contact_email: string; contact_phone: string | null;
+  property_type: string; operation: string; zone: string; address: string | null;
+  bedrooms: number | null; bathrooms: number | null; area_m2: number | null; price: number | null;
+  description: string | null; status: "nuevo" | "en_contacto" | "convertido" | "descartado";
+  admin_notes: string | null; created_at: string;
+}
 
 export const Route = createFileRoute("/_admin/admin")({
   head: () => ({ meta: [{ title: "Admin — ALTUM GROUP" }, { name: "robots", content: "noindex" }] }),
