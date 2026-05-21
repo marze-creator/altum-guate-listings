@@ -32,10 +32,11 @@ interface AdminReqRow {
 }
 
 function AdminPage() {
-  const [tab, setTab] = useState<"pending" | "all" | "inquiries" | "requests">("pending");
+  const [tab, setTab] = useState<"submissions" | "pending" | "all" | "inquiries" | "requests">("submissions");
   const [props, setProps] = useState<PendingProp[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [requests, setRequests] = useState<AdminReqRow[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [notesById, setNotesById] = useState<Record<string, string>>({});
 
@@ -43,7 +44,10 @@ function AdminPage() {
 
   async function load() {
     setLoading(true);
-    if (tab === "inquiries") {
+    if (tab === "submissions") {
+      const { data } = await supabase.from("property_submissions").select("*").order("created_at", { ascending: false }).limit(200);
+      setSubmissions((data as Submission[]) ?? []);
+    } else if (tab === "inquiries") {
       const { data } = await supabase.from("inquiries").select("*").order("created_at", { ascending: false }).limit(100);
       setInquiries((data as Inquiry[]) ?? []);
     } else if (tab === "requests") {
@@ -53,7 +57,6 @@ function AdminPage() {
         .order("created_at", { ascending: false })
         .limit(100);
       const rows = (data as AdminReqRow[]) ?? [];
-      // hydrate profile info
       if (rows.length) {
         const ids = [...new Set(rows.map((r) => r.user_id))];
         const { data: profs } = await supabase.from("profiles").select("user_id,full_name,phone").in("user_id", ids);
@@ -68,6 +71,13 @@ function AdminPage() {
       setProps((data as PendingProp[]) ?? []);
     }
     setLoading(false);
+  }
+
+  async function updateSubmission(id: string, patch: Partial<Submission>) {
+    const { error } = await supabase.from("property_submissions").update(patch).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Actualizado");
+    load();
   }
 
   async function setStatus(id: string, status: "published" | "draft") {
