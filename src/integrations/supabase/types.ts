@@ -249,6 +249,69 @@ export type Database = {
           },
         ]
       }
+      property_submissions: {
+        Row: {
+          address: string | null
+          admin_notes: string | null
+          area_m2: number | null
+          assigned_to: string | null
+          bathrooms: number | null
+          bedrooms: number | null
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          created_at: string
+          description: string | null
+          id: string
+          operation: string
+          price: number | null
+          property_type: string
+          status: Database["public"]["Enums"]["submission_status"]
+          updated_at: string
+          zone: string
+        }
+        Insert: {
+          address?: string | null
+          admin_notes?: string | null
+          area_m2?: number | null
+          assigned_to?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          operation: string
+          price?: number | null
+          property_type: string
+          status?: Database["public"]["Enums"]["submission_status"]
+          updated_at?: string
+          zone: string
+        }
+        Update: {
+          address?: string | null
+          admin_notes?: string | null
+          area_m2?: number | null
+          assigned_to?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          operation?: string
+          price?: number | null
+          property_type?: string
+          status?: Database["public"]["Enums"]["submission_status"]
+          updated_at?: string
+          zone?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -301,6 +364,7 @@ export type Database = {
         | "oficina"
         | "local"
         | "finca"
+      submission_status: "nuevo" | "en_contacto" | "convertido" | "descartado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -447,6 +511,7 @@ export const Constants = {
         "local",
         "finca",
       ],
+      submission_status: ["nuevo", "en_contacto", "convertido", "descartado"],
     },
   },
 } as const
