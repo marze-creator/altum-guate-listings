@@ -1,16 +1,16 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Check, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Check, Send, ShieldCheck, Camera, ClipboardList } from "lucide-react";
+import { z } from "zod";
 import { ZONES, PROPERTY_TYPES } from "@/lib/properties";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/publica")({
   head: () => ({
     meta: [
       { title: "Publica tu Propiedad — ALTUM GROUP" },
-      { name: "description", content: "Publica tu propiedad con ALTUM GROUP y alcanza compradores e inquilinos calificados." },
+      { name: "description", content: "Cuéntanos sobre tu propiedad y un asesor ALTUM la fotografiará y publicará con estándar profesional." },
       { property: "og:url", content: "/publica" },
     ],
     links: [{ rel: "canonical", href: "/publica" }],
@@ -18,95 +18,104 @@ export const Route = createFileRoute("/publica")({
   component: PublicaPage,
 });
 
-const STEPS = ["Tipo", "Ubicación", "Características", "Precio", "Fotos", "Descripción", "Confirmar"];
+// WhatsApp del equipo ALTUM (sin +, solo dígitos)
+const ALTUM_WHATSAPP = "50200000000";
 
-const TYPE_MAP: Record<string, string> = {
-  "Casa": "casa", "Apartamento": "apartamento", "Terreno": "terreno",
-  "Oficina": "oficina", "Local": "local", "Finca": "finca",
-};
+const schema = z.object({
+  contact_name: z.string().trim().min(2, "Nombre muy corto").max(120),
+  contact_email: z.string().trim().email("Correo inválido").max(254),
+  contact_phone: z.string().trim().max(40).optional().or(z.literal("")),
+  property_type: z.string().min(2),
+  operation: z.enum(["venta", "renta"]),
+  zone: z.string().min(2, "Selecciona una zona"),
+  address: z.string().trim().max(240).optional().or(z.literal("")),
+  bedrooms: z.string().optional(),
+  bathrooms: z.string().optional(),
+  area_m2: z.string().optional(),
+  price: z.string().optional(),
+  description: z.string().trim().max(4000).optional().or(z.literal("")),
+});
 
 function PublicaPage() {
-  const { user, isVendedor } = useAuth();
-  const nav = useNavigate();
-  const [step, setStep] = useState(0);
-  const [done, setDone] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [data, setData] = useState<Record<string, string>>({});
-  const [files, setFiles] = useState<File[]>([]);
-  const set = (k: string, v: string) => setData((d) => ({ ...d, [k]: v }));
-  const pct = ((step + 1) / STEPS.length) * 100;
+  const [done, setDone] = useState<null | { id: string; summary: string }>(null);
+  const [sending, setSending] = useState(false);
+  const [form, setForm] = useState({
+    contact_name: "",
+    contact_email: "",
+    contact_phone: "",
+    property_type: "Casa",
+    operation: "venta" as "venta" | "renta",
+    zone: "",
+    address: "",
+    bedrooms: "",
+    bathrooms: "",
+    area_m2: "",
+    price: "",
+    description: "",
+  });
+  const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm((f) => ({ ...f, [k]: v }));
 
-  async function submit() {
-    if (!user) {
-      toast.error("Inicia sesión como vendedor para publicar");
-      nav({ to: "/vendedores/login" });
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const parsed = schema.safeParse(form);
+    if (!parsed.success) {
+      toast.error(parsed.error.errors[0]?.message || "Revisa los datos");
       return;
     }
-    if (!isVendedor) {
-      toast.error("Tu cuenta no tiene permisos de vendedor");
+    setSending(true);
+    const { data, error } = await supabase
+      .from("property_submissions")
+      .insert({
+        contact_name: parsed.data.contact_name,
+        contact_email: parsed.data.contact_email,
+        contact_phone: parsed.data.contact_phone || null,
+        property_type: parsed.data.property_type,
+        operation: parsed.data.operation,
+        zone: parsed.data.zone,
+        address: parsed.data.address || null,
+        bedrooms: form.bedrooms ? Number(form.bedrooms) : null,
+        bathrooms: form.bathrooms ? Number(form.bathrooms) : null,
+        area_m2: form.area_m2 ? Number(form.area_m2) : null,
+        price: form.price ? Number(form.price) : null,
+        description: parsed.data.description || null,
+      })
+      .select("id")
+      .single();
+    setSending(false);
+    if (error || !data) {
+      toast.error(error?.message || "No se pudo enviar");
       return;
     }
-    if (!data.type || !data.zone || !data.price || !data.op) {
-      toast.error("Completa los campos obligatorios");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      // Insert property
-      const { data: prop, error } = await supabase.from("properties").insert({
-        owner_id: user.id,
-        title: data.title || `${data.type} en ${data.zone}`,
-        description: data.desc || null,
-        price: Number(data.price),
-        operation: data.op as "venta" | "renta",
-        type: (TYPE_MAP[data.type] || "casa") as "casa" | "apartamento" | "terreno" | "oficina" | "local" | "finca",
-        zone: data.zone,
-        address: data.address || null,
-        bedrooms: Number(data.beds || 0),
-        bathrooms: Number(data.baths || 0),
-        area_m2: data.area ? Number(data.area) : null,
-        status: "pending",
-      }).select("id").single();
-      if (error) throw error;
-
-      // Upload photos
-      if (files.length > 0 && prop) {
-        const urls: { url: string; position: number }[] = [];
-        for (let i = 0; i < files.length; i++) {
-          const f = files[i];
-          const path = `${user.id}/${prop.id}/${Date.now()}-${i}-${f.name.replace(/[^\w.-]/g, "_")}`;
-          const { error: upErr } = await supabase.storage.from("property-images").upload(path, f);
-          if (upErr) { console.error(upErr); continue; }
-          const { data: pub } = supabase.storage.from("property-images").getPublicUrl(path);
-          urls.push({ url: pub.publicUrl, position: i });
-        }
-        if (urls.length) {
-          await supabase.from("property_images").insert(urls.map((u) => ({ property_id: prop.id, ...u })));
-          await supabase.from("properties").update({ cover_image: urls[0].url }).eq("id", prop.id);
-        }
-      }
-      setDone(true);
-    } catch (e: any) {
-      toast.error(e.message || "Error al publicar");
-    } finally {
-      setSubmitting(false);
-    }
+    const summary =
+      `Nueva propuesta de propiedad — ALTUM\n` +
+      `• Cliente: ${parsed.data.contact_name}\n` +
+      `• Correo: ${parsed.data.contact_email}\n` +
+      (parsed.data.contact_phone ? `• Tel: ${parsed.data.contact_phone}\n` : "") +
+      `• ${parsed.data.property_type} en ${parsed.data.operation}\n` +
+      `• Zona: ${parsed.data.zone}${parsed.data.address ? ` — ${parsed.data.address}` : ""}\n` +
+      (form.price ? `• Precio sugerido: Q${Number(form.price).toLocaleString()}\n` : "") +
+      `• Habs/Baños/Área: ${form.bedrooms || "-"} / ${form.bathrooms || "-"} / ${form.area_m2 || "-"}m²\n` +
+      (parsed.data.description ? `\n${parsed.data.description}` : "");
+    setDone({ id: data.id, summary });
   }
 
   if (done) {
+    const wa = `https://wa.me/${ALTUM_WHATSAPP}?text=${encodeURIComponent(done.summary)}`;
     return (
       <div className="container-altum py-24 text-center max-w-xl mx-auto">
         <div className="w-20 h-20 mx-auto rounded-full bg-secondary text-primary flex items-center justify-center mb-6">
           <Check size={36} strokeWidth={2.5} />
         </div>
-        <h1 className="font-display text-3xl text-primary">¡Propiedad enviada!</h1>
-        <p className="mt-4 text-muted-foreground">Está en revisión. Un asesor ALTUM la aprobará en menos de 24 horas.</p>
-        <div className="mt-8 flex gap-3 justify-center">
-          <button onClick={() => { setDone(false); setStep(0); setData({}); setFiles([]); }} className="px-6 py-3 border border-border rounded-sm">
-            Publicar otra
-          </button>
-          <button onClick={() => nav({ to: "/vendedores/dashboard" })} className="px-6 py-3 bg-secondary text-primary font-semibold rounded-sm">
-            Ir al dashboard
+        <h1 className="font-display text-3xl text-primary">¡Solicitud recibida!</h1>
+        <p className="mt-4 text-muted-foreground">
+          Un asesor ALTUM se comunicará contigo en menos de 24 horas para coordinar la visita, fotografía profesional y publicación con estándar premium.
+        </p>
+        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+          <a href={wa} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-secondary text-primary font-semibold rounded-sm">
+            <Send size={14} /> Enviar también por WhatsApp
+          </a>
+          <button onClick={() => { setDone(null); }} className="px-6 py-3 border border-border rounded-sm">
+            Enviar otra propuesta
           </button>
         </div>
       </div>
@@ -118,144 +127,101 @@ function PublicaPage() {
       <section className="py-16 bg-primary text-primary-foreground">
         <div className="container-altum text-center max-w-3xl mx-auto">
           <h1 className="font-display text-4xl md:text-5xl">Publica tu Propiedad con ALTUM</h1>
-          <p className="mt-4 text-primary-foreground/85">Difusión premium, asesores certificados y compradores calificados.</p>
-          {!user && (
-            <p className="mt-3 text-sm text-secondary">Necesitas una cuenta de vendedor para publicar.</p>
-          )}
+          <p className="mt-4 text-primary-foreground/85">
+            Cuéntanos sobre tu propiedad. Un asesor coordinará la visita, fotografía profesional y publicación con estándar premium.
+          </p>
         </div>
       </section>
 
-      <section className="py-16">
+      <section className="py-12">
+        <div className="container-altum max-w-5xl grid md:grid-cols-3 gap-6">
+          {[
+            { icon: ClipboardList, t: "1. Llenas el formulario", d: "Datos básicos de la propiedad y tus datos de contacto." },
+            { icon: ShieldCheck, t: "2. Asesor te contacta", d: "Validamos información, precio y agendamos visita." },
+            { icon: Camera, t: "3. Fotografía y publicación", d: "ALTUM toma fotos profesionales y publica con estándar premium." },
+          ].map(({ icon: Icon, t, d }) => (
+            <div key={t} className="bg-card border border-border rounded-sm p-6">
+              <Icon className="text-secondary" size={24} />
+              <p className="mt-3 font-display font-semibold text-primary">{t}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="pb-20">
         <div className="container-altum max-w-3xl">
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-2 text-xs font-semibold uppercase tracking-wider text-primary">
-              <span>Paso {step + 1} de {STEPS.length}</span>
-              <span>{STEPS[step]}</span>
+          <form onSubmit={submit} className="bg-card border border-border rounded-sm p-8 space-y-6">
+            <div>
+              <p className="font-display font-semibold text-primary mb-3">Tus datos</p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Input label="Nombre completo *" value={form.contact_name} onChange={(v) => set("contact_name", v)} required maxLength={120} />
+                <Input label="Correo *" type="email" value={form.contact_email} onChange={(v) => set("contact_email", v)} required maxLength={254} />
+                <Input label="Teléfono / WhatsApp" value={form.contact_phone} onChange={(v) => set("contact_phone", v)} maxLength={40} />
+              </div>
             </div>
-            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-secondary transition-all" style={{ width: `${pct}%` }} />
+
+            <div>
+              <p className="font-display font-semibold text-primary mb-3">Tu propiedad</p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Select label="Tipo *" value={form.property_type} onChange={(v) => set("property_type", v)} options={PROPERTY_TYPES} />
+                <Select label="Operación *" value={form.operation} onChange={(v) => set("operation", v as "venta" | "renta")} options={["venta", "renta"]} />
+                <Select label="Zona *" value={form.zone} onChange={(v) => set("zone", v)} options={["", ...ZONES]} placeholder="Selecciona zona" />
+                <Input label="Dirección o referencia" value={form.address} onChange={(v) => set("address", v)} maxLength={240} />
+                <Input label="Habitaciones" type="number" value={form.bedrooms} onChange={(v) => set("bedrooms", v)} />
+                <Input label="Baños" type="number" value={form.bathrooms} onChange={(v) => set("bathrooms", v)} />
+                <Input label="Área (m²)" type="number" value={form.area_m2} onChange={(v) => set("area_m2", v)} />
+                <Input label="Precio sugerido (GTQ)" type="number" value={form.price} onChange={(v) => set("price", v)} />
+              </div>
+              <label className="block mt-3">
+                <span className="text-xs uppercase tracking-wider text-muted-foreground">Cuéntanos más (opcional)</span>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => set("description", e.target.value)}
+                  rows={5}
+                  maxLength={4000}
+                  placeholder="Amenidades, año, condiciones especiales, horarios de visita…"
+                  className="mt-1 w-full p-3 border border-border rounded-sm bg-background"
+                />
+              </label>
             </div>
-          </div>
 
-          <div className="bg-card border border-border rounded-sm p-8 min-h-[320px]">
-            {step === 0 && (
-              <Field label="Tipo de propiedad">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {PROPERTY_TYPES.map((t) => (
-                    <button key={t} onClick={() => set("type", t)} className={`py-4 rounded-sm border text-sm font-semibold ${data.type === t ? "border-secondary bg-secondary/20 text-primary" : "border-border text-primary/70 hover:border-secondary/60"}`}>{t}</button>
-                  ))}
-                </div>
-                <Input className="mt-4" label="Título (opcional)" value={data.title} onChange={(v) => set("title", v)} />
-              </Field>
-            )}
-            {step === 1 && (
-              <Field label="Ubicación">
-                <select value={data.zone || ""} onChange={(e) => set("zone", e.target.value)} className="w-full h-12 px-3 border border-border rounded-sm bg-background">
-                  <option value="">Selecciona una zona</option>
-                  {ZONES.map((z) => <option key={z}>{z}</option>)}
-                </select>
-                <input value={data.address || ""} onChange={(e) => set("address", e.target.value)} placeholder="Dirección o referencia" className="mt-3 w-full h-12 px-3 border border-border rounded-sm bg-background" />
-              </Field>
-            )}
-            {step === 2 && (
-              <Field label="Características">
-                <div className="grid grid-cols-3 gap-3">
-                  <Input label="Habitaciones" type="number" value={data.beds} onChange={(v) => set("beds", v)} />
-                  <Input label="Baños" type="number" value={data.baths} onChange={(v) => set("baths", v)} />
-                  <Input label="Área (m²)" type="number" value={data.area} onChange={(v) => set("area", v)} />
-                </div>
-              </Field>
-            )}
-            {step === 3 && (
-              <Field label="Precio y disponibilidad">
-                <Input label="Precio (GTQ)" type="number" value={data.price} onChange={(v) => set("price", v)} />
-                <div className="mt-3 flex gap-3">
-                  {(["venta", "renta"] as const).map((o) => (
-                    <button key={o} onClick={() => set("op", o)} className={`flex-1 py-3 rounded-sm border text-sm font-semibold capitalize ${data.op === o ? "border-secondary bg-secondary/20" : "border-border"}`}>{o}</button>
-                  ))}
-                </div>
-              </Field>
-            )}
-            {step === 4 && (
-              <Field label="Fotos (recomendado mínimo 5)">
-                <label className="block border-2 border-dashed border-secondary/60 rounded-sm p-10 text-center bg-muted/40 cursor-pointer hover:bg-muted/60">
-                  <p className="text-sm text-muted-foreground">Haz clic o arrastra tus fotos aquí</p>
-                  <p className="mt-1 text-xs text-muted-foreground">JPG / PNG, hasta 10MB cada una</p>
-                  <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => {
-                    const list = Array.from(e.target.files || []);
-                    setFiles((prev) => [...prev, ...list]);
-                  }} />
-                </label>
-                {files.length > 0 && (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mt-4">
-                    {files.map((f, i) => (
-                      <div key={i} className="relative group aspect-square rounded-sm overflow-hidden border border-border">
-                        <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
-                        <button onClick={() => setFiles(files.filter((_, j) => j !== i))} className="absolute top-1 right-1 bg-black/70 text-white p-1 rounded-full opacity-0 group-hover:opacity-100">
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Field>
-            )}
-            {step === 5 && (
-              <Field label="Descripción">
-                <textarea value={data.desc || ""} onChange={(e) => set("desc", e.target.value)} rows={6} placeholder="Describe tu propiedad..." className="w-full p-3 border border-border rounded-sm bg-background" />
-              </Field>
-            )}
-            {step === 6 && (
-              <Field label="Confirmar publicación">
-                <div className="space-y-2 text-sm">
-                  <Row k="Tipo" v={data.type} />
-                  <Row k="Operación" v={data.op} />
-                  <Row k="Zona" v={data.zone} />
-                  <Row k="Precio" v={data.price ? `Q${Number(data.price).toLocaleString()}` : "—"} />
-                  <Row k="Habs/Baños/Área" v={`${data.beds || 0} / ${data.baths || 0} / ${data.area || 0}m²`} />
-                  <Row k="Fotos" v={`${files.length} archivo(s)`} />
-                </div>
-                <p className="mt-6 text-xs text-muted-foreground">Tu propiedad entra en revisión. Un asesor ALTUM la aprobará antes de publicarse.</p>
-              </Field>
-            )}
-          </div>
+            <div className="p-4 bg-secondary/10 border border-secondary/40 rounded-sm flex items-start gap-3">
+              <Camera className="text-secondary mt-0.5 flex-shrink-0" size={18} />
+              <p className="text-xs text-primary/80">
+                <strong>No necesitas subir fotos.</strong> ALTUM enviará un fotógrafo profesional para garantizar que todas las propiedades publicadas cumplan con el estándar visual de la marca.
+              </p>
+            </div>
 
-          <div className="flex justify-between mt-6">
-            <button disabled={step === 0} onClick={() => setStep(step - 1)} className="inline-flex items-center gap-1 px-5 py-2.5 border border-border rounded-sm text-primary disabled:opacity-40">
-              <ChevronLeft size={16} /> Anterior
+            <button type="submit" disabled={sending} className="w-full inline-flex items-center justify-center gap-2 py-4 bg-secondary text-primary font-semibold text-sm uppercase tracking-wider rounded-sm hover:bg-secondary/85 disabled:opacity-60">
+              <Send size={14} /> {sending ? "Enviando…" : "Enviar solicitud"}
             </button>
-            {step < STEPS.length - 1 ? (
-              <button onClick={() => setStep(step + 1)} className="inline-flex items-center gap-1 px-5 py-2.5 bg-secondary text-primary font-semibold rounded-sm hover:bg-secondary/85">
-                Siguiente <ChevronRight size={16} />
-              </button>
-            ) : (
-              <button disabled={submitting} onClick={submit} className="px-6 py-2.5 bg-primary text-primary-foreground font-semibold rounded-sm hover:bg-primary/90 disabled:opacity-50">
-                {submitting ? "Enviando..." : "Enviar publicación"}
-              </button>
-            )}
-          </div>
+            <p className="text-xs text-muted-foreground text-center">Al enviar aceptas que un asesor ALTUM te contacte para coordinar la publicación.</p>
+          </form>
         </div>
       </section>
     </>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Input({ label, value, onChange, type = "text", required, maxLength }: { label: string; value: string; onChange: (v: string) => void; type?: string; required?: boolean; maxLength?: number }) {
   return (
-    <div>
-      <p className="font-display font-semibold text-primary mb-4">{label}</p>
-      {children}
-    </div>
-  );
-}
-function Input({ label, value, onChange, type = "text", className = "" }: { label: string; value?: string; onChange: (v: string) => void; type?: string; className?: string }) {
-  return (
-    <label className={`block ${className}`}>
+    <label className="block">
       <span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span>
-      <input type={type} value={value || ""} onChange={(e) => onChange(e.target.value)} className="mt-1 w-full h-11 px-3 border border-border rounded-sm bg-background" />
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} required={required} maxLength={maxLength} className="mt-1 w-full h-11 px-3 border border-border rounded-sm bg-background" />
     </label>
   );
 }
-function Row({ k, v }: { k: string; v?: string }) {
-  return <div className="flex justify-between border-b border-border py-2"><span className="text-muted-foreground">{k}</span><span className="font-semibold text-primary">{v || "—"}</span></div>;
+
+function Select({ label, value, onChange, options, placeholder }: { label: string; value: string; onChange: (v: string) => void; options: readonly string[]; placeholder?: string }) {
+  return (
+    <label className="block">
+      <span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="mt-1 w-full h-11 px-3 border border-border rounded-sm bg-background">
+        {options.map((o) => (
+          <option key={o} value={o}>{o || placeholder || "—"}</option>
+        ))}
+      </select>
+    </label>
+  );
 }
