@@ -12,7 +12,7 @@ export function FloatingActions() {
   return (
     <>
       <a
-        href="https://wa.me/50220000000?text=Hola%20ALTUM%20GROUP"
+        href="https://wa.me/50251014866?text=Hola%20ALTUM%20GROUP"
         target="_blank"
         rel="noreferrer"
         className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full shadow-elegant text-white transition-transform hover:scale-105"
