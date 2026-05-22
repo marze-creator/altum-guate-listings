@@ -14,6 +14,7 @@ interface AuthCtx {
   isVendedor: boolean;
   isAdmin: boolean;
   signOut: () => Promise<void>;
+  refetchRoles: () => Promise<void>;
 }
 
 const Ctx = createContext<AuthCtx | undefined>(undefined);
@@ -25,11 +26,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const qc = useQueryClient();
 
+  async function loadRoles(userId: string) {
+    // Force fresh fetch — no cache. Supabase client doesn't cache by default,
+    // but we also bypass any React Query cache for roles.
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    setRoles((data ?? []).map((r) => r.role as Role));
+  }
+
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       if (s?.user) {
+        // Always re-fetch roles on any auth event (SIGNED_IN, TOKEN_REFRESHED, USER_UPDATED, INITIAL_SESSION)
         setTimeout(() => loadRoles(s.user.id), 0);
+        if (event === "SIGNED_IN") {
+          qc.invalidateQueries({ queryKey: ["user_roles"] });
+        }
       } else {
         setRoles([]);
       }
@@ -37,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       qc.invalidateQueries();
     });
 
+    // Always re-fetch on mount, no cache
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       if (data.session?.user) loadRoles(data.session.user.id);
@@ -47,11 +63,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function loadRoles(userId: string) {
-    const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-    setRoles((data ?? []).map((r) => r.role as Role));
-  }
-
   const value: AuthCtx = {
     user: session?.user ?? null,
     session,
@@ -61,6 +72,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAdmin: roles.includes("admin"),
     signOut: async () => {
       await supabase.auth.signOut();
+    },
+    refetchRoles: async () => {
+      if (session?.user) await loadRoles(session.user.id);
     },
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
