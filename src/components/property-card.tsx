@@ -46,7 +46,7 @@ export function PropertyCard({ p }: { p: Property }) {
             Ver detalles
           </Link>
           <a
-            href="https://wa.me/50220000000"
+            href="https://wa.me/50251014866"
             target="_blank"
             rel="noreferrer"
             className="text-center text-xs font-semibold uppercase tracking-wider py-2.5 bg-secondary text-primary rounded-sm hover:bg-secondary/85 transition-colors"

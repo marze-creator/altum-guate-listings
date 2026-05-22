@@ -113,7 +113,7 @@ function PropertyDetail() {
                 </div>
               </div>
             </div>
-            <a href="https://wa.me/50220000000" target="_blank" rel="noreferrer" className="mt-4 block text-center py-3 bg-secondary text-primary font-semibold text-sm uppercase tracking-wider rounded-sm hover:bg-secondary/85">
+            <a href="https://wa.me/50251014866" target="_blank" rel="noreferrer" className="mt-4 block text-center py-3 bg-secondary text-primary font-semibold text-sm uppercase tracking-wider rounded-sm hover:bg-secondary/85">
               Contactar por WhatsApp
             </a>
           </div>
