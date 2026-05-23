@@ -25,12 +25,6 @@ const STATS = [
   { n: "98%", l: "Satisfacción" },
 ];
 
-const TEAM = [
-  { name: "Andrea Morales", role: "Directora Comercial" },
-  { name: "Diego Castillo", role: "Asesor Senior" },
-  { name: "Sofía Herrera", role: "Asesora de Lujo" },
-  { name: "Roberto Aldana", role: "Inversiones" },
-];
 
 function AcercaPage() {
   return (
