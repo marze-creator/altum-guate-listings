@@ -83,22 +83,6 @@ function AcercaPage() {
         </div>
       </section>
 
-      <section className="py-20 bg-muted">
-        <div className="container-altum">
-          <h2 className="font-display text-4xl text-primary text-center mb-12">Nuestro equipo</h2>
-          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6">
-            {TEAM.map((m) => (
-              <div key={m.name} className="text-center bg-card p-6 rounded-sm border border-border">
-                <div className="w-24 h-24 mx-auto rounded-full bg-secondary text-primary font-display font-bold text-2xl flex items-center justify-center mb-4">
-                  {m.name.split(" ").map((n) => n[0]).join("")}
-                </div>
-                <p className="font-display font-semibold text-primary">{m.name}</p>
-                <p className="text-sm text-muted-foreground">{m.role}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       <section className="py-20 bg-primary text-primary-foreground text-center">
         <div className="container-altum">
