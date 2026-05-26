@@ -1,1 +1,1 @@
-fix: bloquear auto-asignacion rol vendedor 
+Nuevos signups crean admin_request en lugar de auto-rol vendedor 
