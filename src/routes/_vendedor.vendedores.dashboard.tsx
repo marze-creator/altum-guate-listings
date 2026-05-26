@@ -107,7 +107,7 @@ function Dashboard() {
           <p className="text-sm text-muted-foreground mt-1">{user?.email}</p>
         </div>
         <div className="flex gap-2">
-          <Link to="/publica" className="inline-flex items-center gap-2 h-10 px-4 bg-secondary text-primary font-semibold rounded-sm hover:bg-secondary/85">
+          <Link to="/vendedores/propiedades/nueva" className="inline-flex items-center gap-2 h-10 px-4 bg-secondary text-primary font-semibold rounded-sm hover:bg-secondary/85">
             <Plus size={16} /> Nueva propiedad
           </Link>
           <button onClick={signOut} className="inline-flex items-center gap-2 h-10 px-4 border border-border rounded-sm hover:bg-muted text-sm">
@@ -117,15 +117,15 @@ function Dashboard() {
       </div>
 
       {/* Email verification status */}
-      <div className={`mb-4 rounded-sm border p-4 flex items-start gap-3 ${emailConfirmed ? "bg-green-50 border-green-200" : "bg-amber-50 border-amber-300"}`}>
+      <div className={mb-4 rounded-sm border p-4 flex items-start gap-3 ${emailConfirmed ? "bg-green-50 border-green-200" : "bg-amber-50 border-amber-300"}}>
         {emailConfirmed ? <MailCheck className="text-green-700 shrink-0" size={20} /> : <MailWarning className="text-amber-700 shrink-0" size={20} />}
         <div className="flex-1 min-w-0">
-          <p className={`text-sm font-semibold ${emailConfirmed ? "text-green-900" : "text-amber-900"}`}>
+          <p className={text-sm font-semibold ${emailConfirmed ? "text-green-900" : "text-amber-900"}}>
             {emailConfirmed ? "Correo verificado" : "Correo sin verificar"}
           </p>
-          <p className={`text-xs mt-0.5 ${emailConfirmed ? "text-green-800" : "text-amber-800"}`}>
+          <p className={text-xs mt-0.5 ${emailConfirmed ? "text-green-800" : "text-amber-800"}}>
             {emailConfirmed
-              ? `Confirmado el ${new Date(user!.email_confirmed_at!).toLocaleDateString()}`
+              ? Confirmado el ${new Date(user!.email_confirmed_at!).toLocaleDateString()}
               : "Confirma tu correo para activar todas las funcionalidades de tu cuenta."}
           </p>
         </div>
@@ -205,7 +205,7 @@ function Dashboard() {
         ) : props.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-muted-foreground mb-4">Aún no has publicado propiedades.</p>
-            <Link to="/publica" className="inline-flex items-center gap-2 h-10 px-4 bg-secondary text-primary font-semibold rounded-sm">
+            <Link to="/vendedores/propiedades/nueva" className="inline-flex items-center gap-2 h-10 px-4 bg-secondary text-primary font-semibold rounded-sm">
               <Plus size={16} /> Publicar la primera
             </Link>
           </div>
