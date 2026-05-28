@@ -98,6 +98,19 @@ function Dashboard() {
     views: props.reduce((s, p) => s + p.views, 0),
   };
 
+  const emailBoxClass = emailConfirmed 
+    ? "mb-4 rounded-sm border p-4 flex items-start gap-3 bg-green-50 border-green-200"
+    : "mb-4 rounded-sm border p-4 flex items-start gap-3 bg-amber-50 border-amber-300";
+
+  const emailTextClass = emailConfirmed ? "text-sm font-semibold text-green-900" : "text-sm font-semibold text-amber-900";
+  const emailDescClass = emailConfirmed ? "text-xs mt-0.5 text-green-800" : "text-xs mt-0.5 text-amber-800";
+
+  function statusBadgeClass(status: string) {
+    if (status === "published") return "text-xs px-2 py-1 rounded-sm bg-green-100 text-green-800";
+    if (status === "pending") return "text-xs px-2 py-1 rounded-sm bg-amber-100 text-amber-800";
+    return "text-xs px-2 py-1 rounded-sm bg-gray-100 text-gray-700";
+  }
+
   return (
     <div className="container-altum py-12">
       <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
@@ -116,16 +129,15 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Email verification status */}
-      <div className={mb-4 rounded-sm border p-4 flex items-start gap-3 ${emailConfirmed ? "bg-green-50 border-green-200" : "bg-amber-50 border-amber-300"}}>
+      <div className={emailBoxClass}>
         {emailConfirmed ? <MailCheck className="text-green-700 shrink-0" size={20} /> : <MailWarning className="text-amber-700 shrink-0" size={20} />}
         <div className="flex-1 min-w-0">
-          <p className={text-sm font-semibold ${emailConfirmed ? "text-green-900" : "text-amber-900"}}>
+          <p className={emailTextClass}>
             {emailConfirmed ? "Correo verificado" : "Correo sin verificar"}
           </p>
-          <p className={text-xs mt-0.5 ${emailConfirmed ? "text-green-800" : "text-amber-800"}}>
+          <p className={emailDescClass}>
             {emailConfirmed
-              ? Confirmado el ${new Date(user!.email_confirmed_at!).toLocaleDateString()}
+              ? "Confirmado el " + new Date(user!.email_confirmed_at!).toLocaleDateString()
               : "Confirma tu correo para activar todas las funcionalidades de tu cuenta."}
           </p>
         </div>
@@ -136,7 +148,6 @@ function Dashboard() {
         )}
       </div>
 
-      {/* Admin access request */}
       {!isAdmin && (
         <div className="mb-8 bg-card border border-border rounded-sm p-5">
           <div className="flex items-start gap-3">
@@ -235,11 +246,7 @@ function Dashboard() {
                   <td className="p-4 hidden md:table-cell">{p.zone}</td>
                   <td className="p-4 font-semibold">Q{p.price.toLocaleString()}</td>
                   <td className="p-4">
-                    <span className={`text-xs px-2 py-1 rounded-sm ${
-                      p.status === "published" ? "bg-green-100 text-green-800" :
-                      p.status === "pending" ? "bg-amber-100 text-amber-800" :
-                      "bg-gray-100 text-gray-700"
-                    }`}>
+                    <span className={statusBadgeClass(p.status)}>
                       {p.status}
                     </span>
                   </td>
