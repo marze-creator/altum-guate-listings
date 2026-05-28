@@ -29,7 +29,7 @@ function SignupPage() {
       email: form.email,
       password: form.password,
       options: {
-        emailRedirectTo: ${window.location.origin}/vendedores/dashboard,
+        emailRedirectTo: window.location.origin + "/vendedores/dashboard",
         data: { full_name: form.name, phone: form.phone },
       },
     });
@@ -42,8 +42,8 @@ function SignupPage() {
     
     if (data.user) {
       const reasonText = form.reason 
-        ? Solicitud acceso vendedor — ${form.name}: ${form.reason}
-        : Solicitud acceso vendedor — ${form.name};
+        ? "Solicitud acceso vendedor — " + form.name + ": " + form.reason
+        : "Solicitud acceso vendedor — " + form.name;
         
       await supabase.from("admin_requests").insert({ 
         user_id: data.user.id, 
@@ -59,7 +59,7 @@ function SignupPage() {
 
   const google = async () => {
     const r = await lovable.auth.signInWithOAuth("google", { 
-      redirect_uri: ${window.location.origin}/vendedores/dashboard 
+      redirect_uri: window.location.origin + "/vendedores/dashboard"
     });
     if (r.error) toast.error("Error con Google");
   };
