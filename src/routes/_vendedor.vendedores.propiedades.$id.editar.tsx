@@ -1,205 +1,274 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { ZONES, PROPERTY_TYPES } from "@/lib/properties";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Trash2, Upload } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, LogOut, ShieldCheck, MailCheck, MailWarning, Clock, CheckCircle2, XCircle } from "lucide-react";
 
-export const Route = createFileRoute("/_vendedor/vendedores/propiedades/$id/editar")({
-  head: () => ({ meta: [{ title: "Editar propiedad — ALTUM GROUP" }, { name: "robots", content: "noindex" }] }),
-  component: EditProperty,
+export const Route = createFileRoute("/_vendedor/vendedores/dashboard")({
+  head: () => ({ meta: [{ title: "Dashboard — ALTUM GROUP" }, { name: "robots", content: "noindex" }] }),
+  component: Dashboard,
 });
 
-const TYPE_MAP: Record<string, string> = { Casa: "casa", Apartamento: "apartamento", Terreno: "terreno", Local: "local" };
-const TYPE_REV: Record<string, string> = { casa: "Casa", apartamento: "Apartamento", terreno: "Terreno", local: "Local", oficina: "Local", finca: "Casa" };
+interface AdminReq { id: string; status: "pending" | "approved" | "rejected"; reason: string; created_at: string; admin_notes: string | null; }
 
-function EditProperty() {
-  const { id } = Route.useParams();
-  const { user, isAdmin } = useAuth();
-  const nav = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [images, setImages] = useState<{ id: string; url: string }[]>([]);
-  const [newFiles, setNewFiles] = useState<File[]>([]);
-  const [f, setF] = useState({
-    title: "", description: "", price: "", operation: "venta", type: "Casa",
-    zone: "Zona 10", address: "", bedrooms: "0", bathrooms: "0", area_m2: "0", status: "draft",
-  });
-
-  useEffect(() => {
-    (async () => {
-      if (!user) return;
-
-      let query = supabase.from("properties").select("*").eq("id", id);
-      
-      if (!isAdmin) {
-        query = query.eq("owner_id", user.id);
-      }
-      
-      const { data, error } = await query.single();
-      
-      if (error || !data) { 
-        toast.error("Propiedad no encontrada o sin permisos"); 
-        nav({ to: "/vendedores/dashboard" }); 
-        return; 
-      }
-      
-      setF({
-        title: data.title ?? "",
-        description: data.description ?? "",
-        price: String(data.price),
-        operation: data.operation,
-        type: TYPE_REV[data.type] || "Casa",
-        zone: data.zone,
-        address: data.address ?? "",
-        bedrooms: String(data.bedrooms ?? 0),
-        bathrooms: String(data.bathrooms ?? 0),
-        area_m2: String(data.area_m2 ?? 0),
-        status: data.status,
-      });
-      const { data: imgs } = await supabase.from("property_images").select("id,url").eq("property_id", id).order("position");
-      setImages(imgs ?? []);
-      setLoading(false);
-    })();
-  }, [id, nav, user, isAdmin]);
-
-  async function save() {
-    if (!user) { 
-      toast.error("Sesión expirada"); 
-      return; 
-    }
-    
-    setSaving(true);
-    try {
-      let updateQuery = supabase.from("properties").update({
-        title: f.title,
-        description: f.description || null,
-        price: Number(f.price),
-        operation: f.operation as "venta" | "renta",
-        type: (TYPE_MAP[f.type] || "casa") as "casa" | "apartamento" | "terreno" | "local",
-        zone: f.zone,
-        address: f.address || null,
-        bedrooms: Number(f.bedrooms),
-        bathrooms: Number(f.bathrooms),
-        area_m2: Number(f.area_m2),
-        status: f.status as "draft" | "pending" | "published",
-      }).eq("id", id);
-
-      if (!isAdmin) {
-        updateQuery = updateQuery.eq("owner_id", user.id);
-      }
-
-      const { error } = await updateQuery;
-      if (error) throw error;
-
-      if (newFiles.length > 0 && user) {
-        for (let i = 0; i < newFiles.length; i++) {
-          const file = newFiles[i];
-          const path = ${user.id}/${id}/${Date.now()}-${i}-${file.name.replace(/[^\w.-]/g, "_")};
-          const { error: up } = await supabase.storage.from("property-images").upload(path, file);
-          if (up) continue;
-          const { data: pub } = supabase.storage.from("property-images").getPublicUrl(path);
-          await supabase.from("property_images").insert({ property_id: id, url: pub.publicUrl, position: images.length + i });
-          if (images.length === 0 && i === 0) {
-            await supabase.from("properties").update({ cover_image: pub.publicUrl }).eq("id", id);
-          }
-        }
-      }
-      toast.success("Cambios guardados");
-      nav({ to: "/vendedores/dashboard" });
-    } catch (e: any) {
-      toast.error(e.message || "Error al guardar");
-    } finally { setSaving(false); }
-  }
-
-  async function deleteImage(imgId: string) {
-    if (!confirm("¿Eliminar esta foto?")) return;
-    const { error } = await supabase.from("property_images").delete().eq("id", imgId);
-    if (error) return toast.error(error.message);
-    setImages(images.filter((i) => i.id !== imgId));
-  }
-
-  if (loading) return <div className="container-altum py-24 text-center text-muted-foreground">Cargando…</div>;
-
-  return (
-    <div className="container-altum py-12 max-w-3xl">
-      <Link to="/vendedores/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6">
-        <ArrowLeft size={14} /> Volver al dashboard
-      </Link>
-      <h1 className="font-display text-3xl text-primary mb-8">Editar propiedad</h1>
-
-      <div className="space-y-4 bg-card border border-border rounded-sm p-6">
-        <Field label="Título"><input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} className="input-altum" /></Field>
-        <Field label="Descripción"><textarea value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} className="input-altum min-h-[120px]" /></Field>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Operación">
-            <select value={f.operation} onChange={(e) => setF({ ...f, operation: e.target.value })} className="input-altum">
-              <option value="venta">Venta</option>
-              <option value="renta">Renta</option>
-            </select>
-          </Field>
-          <Field label="Tipo">
-            <select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })} className="input-altum">
-              {PROPERTY_TYPES.map((t) => <option key={t}>{t}</option>)}
-            </select>
-          </Field>
-          <Field label="Zona">
-            <select value={f.zone} onChange={(e) => setF({ ...f, zone: e.target.value })} className="input-altum">
-              {ZONES.map((z) => <option key={z}>{z}</option>)}
-            </select>
-          </Field>
-          <Field label="Precio (Q)"><input type="number" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value })} className="input-altum" /></Field>
-          <Field label="Habitaciones"><input type="number" value={f.bedrooms} onChange={(e) => setF({ ...f, bedrooms: e.target.value })} className="input-altum" /></Field>
-          <Field label="Baños"><input type="number" step="0.5" value={f.bathrooms} onChange={(e) => setF({ ...f, bathrooms: e.target.value })} className="input-altum" /></Field>
-          <Field label="Área (m²)"><input type="number" value={f.area_m2} onChange={(e) => setF({ ...f, area_m2: e.target.value })} className="input-altum" /></Field>
-          <Field label="Estado">
-            <select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} className="input-altum">
-              <option value="draft">Borrador</option>
-              <option value="pending">Pendiente de revisión</option>
-            </select>
-          </Field>
-        </div>
-        <Field label="Dirección"><input value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} className="input-altum" /></Field>
-
-        <div>
-          <p className="text-xs uppercase tracking-wider text-primary font-semibold mb-2">Fotos actuales</p>
-          {images.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Sin fotos.</p>
-          ) : (
-            <div className="grid grid-cols-3 gap-2">
-              {images.map((img) => (
-                <div key={img.id} className="relative aspect-[4/3] rounded-sm overflow-hidden border border-border group">
-                  <img src={img.url} alt="" className="w-full h-full object-cover" />
-                  <button onClick={() => deleteImage(img.id)} className="absolute top-1 right-1 p-1.5 bg-black/60 text-white rounded-sm opacity-0 group-hover:opacity-100" aria-label="Eliminar"><Trash2 size={12} /></button>
-                </div>
-              ))}
-            </div>
-          )}
-          <label className="mt-3 inline-flex items-center gap-2 px-4 py-2 border border-dashed border-secondary text-primary text-sm rounded-sm cursor-pointer hover:bg-secondary/10">
-            <Upload size={14} /> Agregar fotos
-            <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => setNewFiles(Array.from(e.target.files ?? []))} />
-          </label>
-          {newFiles.length > 0 && <p className="text-xs text-muted-foreground mt-2">{newFiles.length} archivo(s) listos para subir.</p>}
-        </div>
-      </div>
-
-      <div className="flex gap-3 mt-6 justify-end">
-        <Link to="/vendedores/dashboard" className="px-5 py-2.5 border border-border rounded-sm text-sm">Cancelar</Link>
-        <button onClick={save} disabled={saving} className="inline-flex items-center gap-2 px-6 py-2.5 bg-secondary text-primary font-semibold rounded-sm hover:bg-secondary/85 disabled:opacity-60">
-          <Save size={14} /> {saving ? "Guardando…" : "Guardar cambios"}
-        </button>
-      </div>
-    </div>
-  );
+interface Prop {
+  id: string;
+  title: string;
+  price: number;
+  zone: string;
+  status: string;
+  operation: string;
+  views: number;
+  cover_image: string | null;
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Dashboard() {
+  const { user, signOut, isAdmin } = useAuth();
+  const [props, setProps] = useState<Prop[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [adminReq, setAdminReq] = useState<AdminReq | null>(null);
+  const [requesting, setRequesting] = useState(false);
+  const [reason, setReason] = useState("");
+  const [showForm, setShowForm] = useState(false);
+
+  const emailConfirmed = !!user?.email_confirmed_at;
+
+  useEffect(() => {
+    if (!user) return;
+    load();
+    loadAdminReq();
+  }, [user]);
+
+  async function load() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("properties")
+      .select("id,title,price,zone,status,operation,views,cover_image")
+      .eq("owner_id", user!.id)
+      .order("created_at", { ascending: false });
+    if (error) toast.error(error.message);
+    setProps(data ?? []);
+    setLoading(false);
+  }
+
+  async function loadAdminReq() {
+    if (isAdmin) return;
+    const { data } = await supabase
+      .from("admin_requests")
+      .select("id,status,reason,created_at,admin_notes")
+      .eq("user_id", user!.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setAdminReq((data as AdminReq) ?? null);
+  }
+
+  async function submitAdminRequest() {
+    if (reason.trim().length < 10) return toast.error("Explica brevemente tu solicitud (mín. 10 caracteres).");
+    if (reason.length > 1000) return toast.error("Máximo 1000 caracteres.");
+    setRequesting(true);
+    const { error } = await supabase.from("admin_requests").insert({ user_id: user!.id, reason: reason.trim() });
+    setRequesting(false);
+    if (error) return toast.error(error.message);
+    toast.success("Solicitud enviada. Un administrador la revisará.");
+    setReason("");
+    setShowForm(false);
+    loadAdminReq();
+  }
+
+  async function resendVerification() {
+    const { error } = await supabase.auth.resend({ type: "signup", email: user!.email! });
+    if (error) return toast.error(error.message);
+    toast.success("Correo de verificación reenviado.");
+  }
+
+  async function remove(id: string) {
+    if (!confirm("¿Eliminar esta propiedad?")) return;
+    const { error } = await supabase.from("properties").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Propiedad eliminada");
+    load();
+  }
+
+  const stats = {
+    total: props.length,
+    published: props.filter((p) => p.status === "published").length,
+    pending: props.filter((p) => p.status === "pending" || p.status === "draft").length,
+    views: props.reduce((s, p) => s + p.views, 0),
+  };
+
+  const emailBoxClass = emailConfirmed 
+    ? "mb-4 rounded-sm border p-4 flex items-start gap-3 bg-green-50 border-green-200"
+    : "mb-4 rounded-sm border p-4 flex items-start gap-3 bg-amber-50 border-amber-300";
+
+  const emailTextClass = emailConfirmed ? "text-sm font-semibold text-green-900" : "text-sm font-semibold text-amber-900";
+  const emailDescClass = emailConfirmed ? "text-xs mt-0.5 text-green-800" : "text-xs mt-0.5 text-amber-800";
+
+  function statusBadgeClass(status: string) {
+    if (status === "published") return "text-xs px-2 py-1 rounded-sm bg-green-100 text-green-800";
+    if (status === "pending") return "text-xs px-2 py-1 rounded-sm bg-amber-100 text-amber-800";
+    return "text-xs px-2 py-1 rounded-sm bg-gray-100 text-gray-700";
+  }
+
   return (
-    <label className="block">
-      <span className="block text-xs uppercase tracking-wider text-primary font-semibold mb-1">{label}</span>
-      {children}
-    </label>
+    <div className="container-altum py-12">
+      <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-secondary font-semibold">Portal Vendedor</p>
+          <h1 className="font-display text-3xl text-primary">Mis Propiedades</h1>
+          <p className="text-sm text-muted-foreground mt-1">{user?.email}</p>
+        </div>
+        <div className="flex gap-2">
+          <Link to="/vendedores/propiedades/nueva" className="inline-flex items-center gap-2 h-10 px-4 bg-secondary text-primary font-semibold rounded-sm hover:bg-secondary/85">
+            <Plus size={16} /> Nueva propiedad
+          </Link>
+          <button onClick={signOut} className="inline-flex items-center gap-2 h-10 px-4 border border-border rounded-sm hover:bg-muted text-sm">
+            <LogOut size={16} /> Salir
+          </button>
+        </div>
+      </div>
+
+      <div className={emailBoxClass}>
+        {emailConfirmed ? <MailCheck className="text-green-700 shrink-0" size={20} /> : <MailWarning className="text-amber-700 shrink-0" size={20} />}
+        <div className="flex-1 min-w-0">
+          <p className={emailTextClass}>
+            {emailConfirmed ? "Correo verificado" : "Correo sin verificar"}
+          </p>
+          <p className={emailDescClass}>
+            {emailConfirmed
+              ? "Confirmado el " + new Date(user!.email_confirmed_at!).toLocaleDateString()
+              : "Confirma tu correo para activar todas las funcionalidades de tu cuenta."}
+          </p>
+        </div>
+        {!emailConfirmed && (
+          <button onClick={resendVerification} className="text-xs font-semibold px-3 py-1.5 bg-amber-700 text-white rounded-sm hover:bg-amber-800">
+            Reenviar correo
+          </button>
+        )}
+      </div>
+
+      {!isAdmin && (
+        <div className="mb-8 bg-card border border-border rounded-sm p-5">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="text-secondary shrink-0" size={20} />
+            <div className="flex-1 min-w-0">
+              <p className="font-display font-semibold text-primary">Acceso administrativo</p>
+              {!adminReq && (
+                <p className="text-xs text-muted-foreground mt-0.5">Solicita permisos de administrador para aprobar propiedades y gestionar consultas.</p>
+              )}
+              {adminReq?.status === "pending" && (
+                <p className="text-xs text-amber-700 mt-1 flex items-center gap-1.5"><Clock size={12} /> Solicitud en revisión desde el {new Date(adminReq.created_at).toLocaleDateString()}.</p>
+              )}
+              {adminReq?.status === "rejected" && (
+                <div className="text-xs text-red-700 mt-1">
+                  <p className="flex items-center gap-1.5"><XCircle size={12} /> Solicitud rechazada.</p>
+                  {adminReq.admin_notes && <p className="mt-1 italic">"{adminReq.admin_notes}"</p>}
+                </div>
+              )}
+              {adminReq?.status === "approved" && (
+                <p className="text-xs text-green-700 mt-1 flex items-center gap-1.5"><CheckCircle2 size={12} /> Aprobada. Recarga la sesión para ver el panel admin.</p>
+              )}
+            </div>
+            {(!adminReq || adminReq.status === "rejected") && !showForm && (
+              <button onClick={() => setShowForm(true)} className="text-xs font-semibold px-3 py-1.5 border border-secondary text-primary rounded-sm hover:bg-secondary/10">
+                Solicitar acceso
+              </button>
+            )}
+          </div>
+          {showForm && (
+            <div className="mt-4 space-y-2">
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                maxLength={1000}
+                placeholder="Cuéntanos por qué necesitas acceso administrativo (mín. 10 caracteres)…"
+                className="w-full min-h-[100px] rounded-sm border border-border bg-background p-3 text-sm"
+              />
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => { setShowForm(false); setReason(""); }} className="text-xs px-3 py-1.5 border border-border rounded-sm">Cancelar</button>
+                <button onClick={submitAdminRequest} disabled={requesting} className="text-xs font-semibold px-3 py-1.5 bg-secondary text-primary rounded-sm disabled:opacity-50">
+                  {requesting ? "Enviando…" : "Enviar solicitud"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {[
+          { l: "Total", v: stats.total },
+          { l: "Publicadas", v: stats.published },
+          { l: "Pendientes", v: stats.pending },
+          { l: "Vistas", v: stats.views },
+        ].map((s) => (
+          <div key={s.l} className="bg-card border border-border rounded-sm p-5">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">{s.l}</p>
+            <p className="font-display text-3xl text-primary mt-2">{s.v}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-card border border-border rounded-sm overflow-hidden">
+        {loading ? (
+          <p className="p-12 text-center text-muted-foreground">Cargando…</p>
+        ) : props.length === 0 ? (
+          <div className="p-12 text-center">
+            <p className="text-muted-foreground mb-4">Aún no has publicado propiedades.</p>
+            <Link to="/vendedores/propiedades/nueva" className="inline-flex items-center gap-2 h-10 px-4 bg-secondary text-primary font-semibold rounded-sm">
+              <Plus size={16} /> Publicar la primera
+            </Link>
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-muted text-xs uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="text-left p-4">Propiedad</th>
+                <th className="text-left p-4 hidden md:table-cell">Zona</th>
+                <th className="text-left p-4">Precio</th>
+                <th className="text-left p-4">Estado</th>
+                <th className="text-right p-4">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {props.map((p) => (
+                <tr key={p.id} className="border-t border-border">
+                  <td className="p-4">
+                    <div className="flex items-center gap-3">
+                      {p.cover_image && <img src={p.cover_image} alt="" className="w-12 h-12 object-cover rounded-sm" />}
+                      <div>
+                        <p className="font-semibold text-primary">{p.title}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{p.operation}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-4 hidden md:table-cell">{p.zone}</td>
+                  <td className="p-4 font-semibold">Q{p.price.toLocaleString()}</td>
+                  <td className="p-4">
+                    <span className={statusBadgeClass(p.status)}>
+                      {p.status}
+                    </span>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex justify-end gap-2">
+                      <Link to="/propiedades/$id" params={{ id: p.id }} className="p-2 hover:bg-muted rounded-sm" aria-label="Ver">
+                        <Eye size={16} />
+                      </Link>
+                      <Link to="/vendedores/propiedades/$id/editar" params={{ id: p.id }} className="p-2 hover:bg-muted rounded-sm" aria-label="Editar">
+                        <Edit size={16} />
+                      </Link>
+                      <button onClick={() => remove(p.id)} className="p-2 hover:bg-muted rounded-sm text-red-600" aria-label="Eliminar">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
   );
 }
