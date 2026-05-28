@@ -91,11 +91,12 @@ function NewProperty() {
       if (!newProp) throw new Error("No se pudo crear la propiedad");
 
       if (files.length > 0) {
-        toast.info(Subiendo ${files.length} imagen(es)...);
+        toast.info("Subiendo " + files.length + " imagen(es)...");
         
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
-          const path = ${user.id}/${newProp.id}/${Date.now()}-${i}-${file.name.replace(/[^\w.-]/g, "_")};
+          const safeName = file.name.replace(/[^\w.-]/g, "_");
+          const path = user.id + "/" + newProp.id + "/" + Date.now() + "-" + i + "-" + safeName;
           
           const { error: upErr } = await supabase.storage
             .from("property-images")
@@ -298,7 +299,7 @@ function NewProperty() {
           
           <label className="inline-flex items-center gap-2 px-4 py-3 border-2 border-dashed border-secondary text-primary text-sm rounded-sm cursor-pointer hover:bg-secondary/10 transition-colors">
             <Upload size={16} /> 
-            {files.length === 0 ? "Seleccionar fotos" : ${files.length} foto(s) seleccionada(s)}
+            {files.length === 0 ? "Seleccionar fotos" : files.length + " foto(s) seleccionada(s)"}
             <input 
               type="file" 
               multiple 
@@ -314,7 +315,7 @@ function NewProperty() {
                 <div key={i} className="relative aspect-[4/3] rounded-sm overflow-hidden border border-border">
                   <img 
                     src={URL.createObjectURL(file)} 
-                    alt={Preview ${i+1}}
+                    alt={"Preview " + (i+1)}
                     className="w-full h-full object-cover" 
                   />
                   {i === 0 && (
