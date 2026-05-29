@@ -8,10 +8,10 @@ export const Route = createFileRoute("/tasacion")({
   validateSearch: () => ({}),
   head: () => ({
     meta: [
-      { title: "Tasación Gratis — ALTUM GROUP" },
-      { name: "description", content: "Solicitá una tasación profesional gratuita de t
-      { property: "og:title", content: "Tasación Profesional Gratuita — ALTUM GROUP" }
-      { property: "og:description", content: "Conocé el valor real de tu propiedad. An
+      { title: "Tasacion Gratis - ALTUM GROUP" },
+      { name: "description", content: "Tasacion profesional gratuita de tu propiedad e
+      { property: "og:title", content: "Tasacion Profesional Gratuita - ALTUM GROUP" }
+      { property: "og:description", content: "Conoce el valor real de tu propiedad. An
 ], }),
   component: TasacionPage,
 });
@@ -38,9 +38,9 @@ function TasacionPage() {
     bedrooms: "",
     bathrooms: "",
     estimated_value: "",
-u propi
+n Guate
 ,
-álisis
+alisis
    reason: "sell_soon",
   comments: "",
 });
@@ -89,7 +89,7 @@ return; }
     setSuccess(true);
     toast.success("Solicitud enviada correctamente");
   } catch (e: any) {
-    console.error("Error enviando tasación:", e);
+    console.error("Error enviando tasacion:", e);
     toast.error("Hubo un problema al enviar tu solicitud. Intentá de nuevo en unos m
   } finally {
     setSubmitting(false);
@@ -149,7 +149,7 @@ return (
           Servicio gratuito sin compromiso
         </p>
         <h1 className="font-display text-4xl md:text-5xl mb-4">
-          ¿Cuánto vale tu propiedad hoy?
+          Cuanto vale tu propiedad hoy?
         </h1>
         <p className="text-base md:text-lg text-white/80 max-w-2xl mx-auto">
           Tasación profesional gratuita con análisis comparativo de mercado.
@@ -210,10 +210,10 @@ ango su
             required
             value={f.full_name}
             onChange={(e) => setF({ ...f, full_name: e.target.value })}
-            placeholder="Cómo te llamás"
+            placeholder="Como te llamas"
             className="input-altum"
 /> </Field>
-        <Field label="Correo electrónico *">
+        <Field label="Correo electronico *">
           <input
             required
             type="email"
@@ -223,7 +223,7 @@ ango su
             className="input-altum"
           />
         </Field>
-        <Field label="Teléfono *">
+        <Field label="Telefono *">
           <input
             required
             type="tel"
@@ -238,7 +238,7 @@ ld mb-3
         placeholder="+502 5555-5555"
         className="input-altum"
 /> </Field>
-    <Field label="WhatsApp" hint="Si es diferente al teléfono">
+    <Field label="WhatsApp" hint="Si es diferente al telefono">
       <input
         type="tel"
         value={f.whatsapp}
@@ -275,7 +275,7 @@ ld mb-3
         ))}
       </select>
     </Field>
-    <Field label="Tamaño aproximado (m2) *">
+    <Field label="Tamano aproximado (m2) *">
       <input
 required
 ld mb-3
@@ -288,11 +288,11 @@ ld mb-3
         className="input-altum"
       />
     </Field>
-    <Field label="Valor que estimás (opcional)" hint="Ej: alrededor de USD
+    <Field label="Valor que estimas (opcional)" hint="Ej: alrededor de USD
       <input
         value={f.estimated_value}
         onChange={(e) => setF({ ...f, estimated_value: e.target.value })}
-        placeholder="No estás seguro? Está bien dejarlo vacío"
+        placeholder="No estas seguro? Esta bien dejarlo vacio"
         className="input-altum"
 /> </Field>
     <Field label="Habitaciones">
@@ -305,7 +305,7 @@ ld mb-3
         className="input-altum"
       />
     </Field>
-    <Field label="Baños">
+    <Field label="Banos">
       <input
         type="number"
         step="0.5"
@@ -319,9 +319,9 @@ ld mb-3
 </div>
 <div>
   <h3 className="text-xs uppercase tracking-wider text-primary font-semibo
-    Motivo de la tasación
+    Motivo de la tasacion
   </h3>
-  <Field label="¿Por qué necesitás la tasación? *">
+  <Field label="Por que necesitas la tasacion? *">
     <select
 value={f.reason}
 300,00
@@ -342,7 +342,7 @@ ld mb-3
           <textarea
             value={f.comments}
             onChange={(e) => setF({ ...f, comments: e.target.value })}
-            placeholder="Algo más que el asesor deba saber sobre la propiedad
+            placeholder="Algo mas que el asesor deba saber sobre la propiedad
             rows={4}
             className="input-altum resize-none"
 /> </Field>
@@ -354,19 +354,19 @@ ld mb-3
         disabled={submitting}
         className="w-full md:w-auto inline-flex items-center justify-center ga
       >
-        {submitting ? "Enviando..." : "Solicitar tasación gratuita"}
+        {submitting ? "Enviando..." : "Solicitar tasacion gratuita"}
         {!submitting && <ArrowRight size={16} />}
       </button>
       <p className="text-xs text-muted-foreground mt-3">
-        Al enviar este formulario aceptás que un asesor de ALTUM te contacte p
-        Tu información no se comparte con terceros.
+        Al enviar este formulario aceptas que un asesor de ALTUM te contacte p
+        Tu informacion no se comparte con terceros.
       </p>
     </div>
   </form>
 </div>
 <div className="mt-12 text-center">
   <p className="text-sm text-muted-foreground">
-    ¿Tenés dudas antes de solicitar?{" "}
+    Tenes dudas antes de solicitar?{" "}
     <a
       href="https://wa.me/50251014866?text=Hola%20ALTUM,%20tengo%20una%20duda%
       target="_blank"
