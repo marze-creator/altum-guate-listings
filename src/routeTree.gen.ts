@@ -12,12 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TasacionRouteImport } from './routes/tasacion'
 import { Route as RentaRouteImport } from './routes/renta'
 import { Route as PublicaRouteImport } from './routes/publica'
-import { Route as PropiedadesRouteImport } from './routes/propiedades'
 import { Route as CompraRouteImport } from './routes/compra'
 import { Route as AcercaRouteImport } from './routes/acerca'
 import { Route as VendedorRouteImport } from './routes/_vendedor'
 import { Route as AdminRouteImport } from './routes/_admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PropiedadesIndexRouteImport } from './routes/propiedades.index'
 import { Route as VendedoresSignupRouteImport } from './routes/vendedores.signup'
 import { Route as VendedoresLoginRouteImport } from './routes/vendedores.login'
 import { Route as PropiedadesIdRouteImport } from './routes/propiedades.$id'
@@ -41,11 +41,6 @@ const PublicaRoute = PublicaRouteImport.update({
   path: '/publica',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PropiedadesRoute = PropiedadesRouteImport.update({
-  id: '/propiedades',
-  path: '/propiedades',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CompraRoute = CompraRouteImport.update({
   id: '/compra',
   path: '/compra',
@@ -67,6 +62,11 @@ const AdminRoute = AdminRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PropiedadesIndexRoute = PropiedadesIndexRouteImport.update({
+  id: '/propiedades/',
+  path: '/propiedades/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VendedoresSignupRoute = VendedoresSignupRouteImport.update({
@@ -112,7 +112,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/acerca': typeof AcercaRoute
   '/compra': typeof CompraRoute
-  '/propiedades': typeof PropiedadesRouteWithChildren
   '/publica': typeof PublicaRoute
   '/renta': typeof RentaRoute
   '/tasacion': typeof TasacionRoute
@@ -120,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/propiedades/$id': typeof PropiedadesIdRoute
   '/vendedores/login': typeof VendedoresLoginRoute
   '/vendedores/signup': typeof VendedoresSignupRoute
+  '/propiedades/': typeof PropiedadesIndexRoute
   '/vendedores/dashboard': typeof VendedorVendedoresDashboardRoute
   '/vendedores/propiedades/nueva': typeof VendedorVendedoresPropiedadesNuevaRoute
   '/vendedores/propiedades/$id/editar': typeof VendedorVendedoresPropiedadesIdEditarRoute
@@ -128,7 +128,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/acerca': typeof AcercaRoute
   '/compra': typeof CompraRoute
-  '/propiedades': typeof PropiedadesRouteWithChildren
   '/publica': typeof PublicaRoute
   '/renta': typeof RentaRoute
   '/tasacion': typeof TasacionRoute
@@ -136,6 +135,7 @@ export interface FileRoutesByTo {
   '/propiedades/$id': typeof PropiedadesIdRoute
   '/vendedores/login': typeof VendedoresLoginRoute
   '/vendedores/signup': typeof VendedoresSignupRoute
+  '/propiedades': typeof PropiedadesIndexRoute
   '/vendedores/dashboard': typeof VendedorVendedoresDashboardRoute
   '/vendedores/propiedades/nueva': typeof VendedorVendedoresPropiedadesNuevaRoute
   '/vendedores/propiedades/$id/editar': typeof VendedorVendedoresPropiedadesIdEditarRoute
@@ -147,7 +147,6 @@ export interface FileRoutesById {
   '/_vendedor': typeof VendedorRouteWithChildren
   '/acerca': typeof AcercaRoute
   '/compra': typeof CompraRoute
-  '/propiedades': typeof PropiedadesRouteWithChildren
   '/publica': typeof PublicaRoute
   '/renta': typeof RentaRoute
   '/tasacion': typeof TasacionRoute
@@ -155,6 +154,7 @@ export interface FileRoutesById {
   '/propiedades/$id': typeof PropiedadesIdRoute
   '/vendedores/login': typeof VendedoresLoginRoute
   '/vendedores/signup': typeof VendedoresSignupRoute
+  '/propiedades/': typeof PropiedadesIndexRoute
   '/_vendedor/vendedores/dashboard': typeof VendedorVendedoresDashboardRoute
   '/_vendedor/vendedores/propiedades/nueva': typeof VendedorVendedoresPropiedadesNuevaRoute
   '/_vendedor/vendedores/propiedades/$id/editar': typeof VendedorVendedoresPropiedadesIdEditarRoute
@@ -165,7 +165,6 @@ export interface FileRouteTypes {
     | '/'
     | '/acerca'
     | '/compra'
-    | '/propiedades'
     | '/publica'
     | '/renta'
     | '/tasacion'
@@ -173,6 +172,7 @@ export interface FileRouteTypes {
     | '/propiedades/$id'
     | '/vendedores/login'
     | '/vendedores/signup'
+    | '/propiedades/'
     | '/vendedores/dashboard'
     | '/vendedores/propiedades/nueva'
     | '/vendedores/propiedades/$id/editar'
@@ -181,7 +181,6 @@ export interface FileRouteTypes {
     | '/'
     | '/acerca'
     | '/compra'
-    | '/propiedades'
     | '/publica'
     | '/renta'
     | '/tasacion'
@@ -189,6 +188,7 @@ export interface FileRouteTypes {
     | '/propiedades/$id'
     | '/vendedores/login'
     | '/vendedores/signup'
+    | '/propiedades'
     | '/vendedores/dashboard'
     | '/vendedores/propiedades/nueva'
     | '/vendedores/propiedades/$id/editar'
@@ -199,7 +199,6 @@ export interface FileRouteTypes {
     | '/_vendedor'
     | '/acerca'
     | '/compra'
-    | '/propiedades'
     | '/publica'
     | '/renta'
     | '/tasacion'
@@ -207,6 +206,7 @@ export interface FileRouteTypes {
     | '/propiedades/$id'
     | '/vendedores/login'
     | '/vendedores/signup'
+    | '/propiedades/'
     | '/_vendedor/vendedores/dashboard'
     | '/_vendedor/vendedores/propiedades/nueva'
     | '/_vendedor/vendedores/propiedades/$id/editar'
@@ -218,12 +218,12 @@ export interface RootRouteChildren {
   VendedorRoute: typeof VendedorRouteWithChildren
   AcercaRoute: typeof AcercaRoute
   CompraRoute: typeof CompraRoute
-  PropiedadesRoute: typeof PropiedadesRouteWithChildren
   PublicaRoute: typeof PublicaRoute
   RentaRoute: typeof RentaRoute
   TasacionRoute: typeof TasacionRoute
   VendedoresLoginRoute: typeof VendedoresLoginRoute
   VendedoresSignupRoute: typeof VendedoresSignupRoute
+  PropiedadesIndexRoute: typeof PropiedadesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -247,13 +247,6 @@ declare module '@tanstack/react-router' {
       path: '/publica'
       fullPath: '/publica'
       preLoaderRoute: typeof PublicaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/propiedades': {
-      id: '/propiedades'
-      path: '/propiedades'
-      fullPath: '/propiedades'
-      preLoaderRoute: typeof PropiedadesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/compra': {
@@ -289,6 +282,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/propiedades/': {
+      id: '/propiedades/'
+      path: '/propiedades'
+      fullPath: '/propiedades/'
+      preLoaderRoute: typeof PropiedadesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/vendedores/signup': {
@@ -371,31 +371,29 @@ const VendedorRouteWithChildren = VendedorRoute._addFileChildren(
   VendedorRouteChildren,
 )
 
-interface PropiedadesRouteChildren {
-  PropiedadesIdRoute: typeof PropiedadesIdRoute
-}
-
-const PropiedadesRouteChildren: PropiedadesRouteChildren = {
-  PropiedadesIdRoute: PropiedadesIdRoute,
-}
-
-const PropiedadesRouteWithChildren = PropiedadesRoute._addFileChildren(
-  PropiedadesRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   VendedorRoute: VendedorRouteWithChildren,
   AcercaRoute: AcercaRoute,
   CompraRoute: CompraRoute,
-  PropiedadesRoute: PropiedadesRouteWithChildren,
   PublicaRoute: PublicaRoute,
   RentaRoute: RentaRoute,
   TasacionRoute: TasacionRoute,
   VendedoresLoginRoute: VendedoresLoginRoute,
   VendedoresSignupRoute: VendedoresSignupRoute,
+  PropiedadesIndexRoute: PropiedadesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
