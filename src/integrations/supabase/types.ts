@@ -50,8 +50,42 @@ export type Database = {
         }
         Relationships: []
       }
+      favorites: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          property_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          property_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          property_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inquiries: {
         Row: {
+          admin_notes: string | null
+          assigned_to_user_id: string | null
           contacted: boolean
           created_at: string
           email: string
@@ -60,8 +94,11 @@ export type Database = {
           name: string
           phone: string | null
           property_id: string
+          status: string | null
         }
         Insert: {
+          admin_notes?: string | null
+          assigned_to_user_id?: string | null
           contacted?: boolean
           created_at?: string
           email: string
@@ -70,8 +107,11 @@ export type Database = {
           name: string
           phone?: string | null
           property_id: string
+          status?: string | null
         }
         Update: {
+          admin_notes?: string | null
+          assigned_to_user_id?: string | null
           contacted?: boolean
           created_at?: string
           email?: string
@@ -80,6 +120,7 @@ export type Database = {
           name?: string
           phone?: string | null
           property_id?: string
+          status?: string | null
         }
         Relationships: [
           {
@@ -128,6 +169,7 @@ export type Database = {
         Row: {
           address: string | null
           area_m2: number | null
+          assigned_to_user_id: string | null
           bathrooms: number | null
           bedrooms: number | null
           city: string | null
@@ -157,6 +199,7 @@ export type Database = {
         Insert: {
           address?: string | null
           area_m2?: number | null
+          assigned_to_user_id?: string | null
           bathrooms?: number | null
           bedrooms?: number | null
           city?: string | null
@@ -186,6 +229,7 @@ export type Database = {
         Update: {
           address?: string | null
           area_m2?: number | null
+          assigned_to_user_id?: string | null
           bathrooms?: number | null
           bedrooms?: number | null
           city?: string | null
@@ -312,6 +356,47 @@ export type Database = {
         }
         Relationships: []
       }
+      property_views: {
+        Row: {
+          created_at: string
+          id: string
+          ip_country: string | null
+          property_id: string
+          referrer: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_country?: string | null
+          property_id: string
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_country?: string | null
+          property_id?: string
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_views_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -333,9 +418,102 @@ export type Database = {
         }
         Relationships: []
       }
+      valuations: {
+        Row: {
+          admin_notes: string | null
+          approximate_size: number
+          assigned_to: string | null
+          bathrooms: number | null
+          bedrooms: number | null
+          comments: string | null
+          contacted_at: string | null
+          created_at: string
+          email: string
+          estimated_value: string | null
+          full_name: string
+          id: string
+          phone: string
+          property_type: string
+          reason: string
+          source: string | null
+          status: string | null
+          updated_at: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          whatsapp: string
+          zone: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          approximate_size: number
+          assigned_to?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          comments?: string | null
+          contacted_at?: string | null
+          created_at?: string
+          email: string
+          estimated_value?: string | null
+          full_name: string
+          id?: string
+          phone: string
+          property_type: string
+          reason: string
+          source?: string | null
+          status?: string | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          whatsapp: string
+          zone: string
+        }
+        Update: {
+          admin_notes?: string | null
+          approximate_size?: number
+          assigned_to?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          comments?: string | null
+          contacted_at?: string | null
+          created_at?: string
+          email?: string
+          estimated_value?: string | null
+          full_name?: string
+          id?: string
+          phone?: string
+          property_type?: string
+          reason?: string
+          source?: string | null
+          status?: string | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          whatsapp?: string
+          zone?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      pending_leads_dashboard: {
+        Row: {
+          assigned_to_user_id: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string | null
+          id: string | null
+          lead_type: string | null
+          message: string | null
+          property_title: string | null
+          property_zone: string | null
+          status: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
