@@ -6,7 +6,7 @@ import { PropertyCard } from "@/components/property-card";
 import { fetchPropertyById, fetchPublishedProperties } from "@/lib/properties-db";
 import { InquiryForm } from "@/components/inquiry-form";
 
-export const Route = createFileRoute("/propiedades/$id")({
+export const Route = createFileRoute("/_vendedor/vendedores/propiedades/$id/editar")({
   validateSearch: () => ({}),
   head: () => ({
     meta: [{ title: "Propiedad — ALTUM GROUP" }],
