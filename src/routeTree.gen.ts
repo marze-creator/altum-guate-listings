@@ -80,9 +80,9 @@ const VendedoresLoginRoute = VendedoresLoginRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const PropiedadesIdRoute = PropiedadesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => PropiedadesRoute,
+  id: '/propiedades/$id',
+  path: '/propiedades/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminAdminRoute = AdminAdminRouteImport.update({
   id: '/admin',
@@ -221,6 +221,7 @@ export interface RootRouteChildren {
   PublicaRoute: typeof PublicaRoute
   RentaRoute: typeof RentaRoute
   TasacionRoute: typeof TasacionRoute
+  PropiedadesIdRoute: typeof PropiedadesIdRoute
   VendedoresLoginRoute: typeof VendedoresLoginRoute
   VendedoresSignupRoute: typeof VendedoresSignupRoute
   PropiedadesIndexRoute: typeof PropiedadesIndexRoute
@@ -307,10 +308,10 @@ declare module '@tanstack/react-router' {
     }
     '/propiedades/$id': {
       id: '/propiedades/$id'
-      path: '/$id'
+      path: '/propiedades/$id'
       fullPath: '/propiedades/$id'
       preLoaderRoute: typeof PropiedadesIdRouteImport
-      parentRoute: typeof PropiedadesRoute
+      parentRoute: typeof rootRouteImport
     }
     '/_admin/admin': {
       id: '/_admin/admin'
@@ -380,6 +381,7 @@ const rootRouteChildren: RootRouteChildren = {
   PublicaRoute: PublicaRoute,
   RentaRoute: RentaRoute,
   TasacionRoute: TasacionRoute,
+  PropiedadesIdRoute: PropiedadesIdRoute,
   VendedoresLoginRoute: VendedoresLoginRoute,
   VendedoresSignupRoute: VendedoresSignupRoute,
   PropiedadesIndexRoute: PropiedadesIndexRoute,
