@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TasacionRouteImport } from './routes/tasacion'
 import { Route as RentaRouteImport } from './routes/renta'
 import { Route as PublicaRouteImport } from './routes/publica'
 import { Route as PropiedadesRouteImport } from './routes/propiedades'
@@ -22,8 +23,14 @@ import { Route as VendedoresLoginRouteImport } from './routes/vendedores.login'
 import { Route as PropiedadesIdRouteImport } from './routes/propiedades.$id'
 import { Route as AdminAdminRouteImport } from './routes/_admin.admin'
 import { Route as VendedorVendedoresDashboardRouteImport } from './routes/_vendedor.vendedores.dashboard'
+import { Route as VendedorVendedoresPropiedadesNuevaRouteImport } from './routes/_vendedor.vendedores.propiedades.nueva'
 import { Route as VendedorVendedoresPropiedadesIdEditarRouteImport } from './routes/_vendedor.vendedores.propiedades.$id.editar'
 
+const TasacionRoute = TasacionRouteImport.update({
+  id: '/tasacion',
+  path: '/tasacion',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RentaRoute = RentaRouteImport.update({
   id: '/renta',
   path: '/renta',
@@ -88,6 +95,12 @@ const VendedorVendedoresDashboardRoute =
     path: '/vendedores/dashboard',
     getParentRoute: () => VendedorRoute,
   } as any)
+const VendedorVendedoresPropiedadesNuevaRoute =
+  VendedorVendedoresPropiedadesNuevaRouteImport.update({
+    id: '/vendedores/propiedades/nueva',
+    path: '/vendedores/propiedades/nueva',
+    getParentRoute: () => VendedorRoute,
+  } as any)
 const VendedorVendedoresPropiedadesIdEditarRoute =
   VendedorVendedoresPropiedadesIdEditarRouteImport.update({
     id: '/vendedores/propiedades/$id/editar',
@@ -102,11 +115,13 @@ export interface FileRoutesByFullPath {
   '/propiedades': typeof PropiedadesRouteWithChildren
   '/publica': typeof PublicaRoute
   '/renta': typeof RentaRoute
+  '/tasacion': typeof TasacionRoute
   '/admin': typeof AdminAdminRoute
   '/propiedades/$id': typeof PropiedadesIdRoute
   '/vendedores/login': typeof VendedoresLoginRoute
   '/vendedores/signup': typeof VendedoresSignupRoute
   '/vendedores/dashboard': typeof VendedorVendedoresDashboardRoute
+  '/vendedores/propiedades/nueva': typeof VendedorVendedoresPropiedadesNuevaRoute
   '/vendedores/propiedades/$id/editar': typeof VendedorVendedoresPropiedadesIdEditarRoute
 }
 export interface FileRoutesByTo {
@@ -116,11 +131,13 @@ export interface FileRoutesByTo {
   '/propiedades': typeof PropiedadesRouteWithChildren
   '/publica': typeof PublicaRoute
   '/renta': typeof RentaRoute
+  '/tasacion': typeof TasacionRoute
   '/admin': typeof AdminAdminRoute
   '/propiedades/$id': typeof PropiedadesIdRoute
   '/vendedores/login': typeof VendedoresLoginRoute
   '/vendedores/signup': typeof VendedoresSignupRoute
   '/vendedores/dashboard': typeof VendedorVendedoresDashboardRoute
+  '/vendedores/propiedades/nueva': typeof VendedorVendedoresPropiedadesNuevaRoute
   '/vendedores/propiedades/$id/editar': typeof VendedorVendedoresPropiedadesIdEditarRoute
 }
 export interface FileRoutesById {
@@ -133,11 +150,13 @@ export interface FileRoutesById {
   '/propiedades': typeof PropiedadesRouteWithChildren
   '/publica': typeof PublicaRoute
   '/renta': typeof RentaRoute
+  '/tasacion': typeof TasacionRoute
   '/_admin/admin': typeof AdminAdminRoute
   '/propiedades/$id': typeof PropiedadesIdRoute
   '/vendedores/login': typeof VendedoresLoginRoute
   '/vendedores/signup': typeof VendedoresSignupRoute
   '/_vendedor/vendedores/dashboard': typeof VendedorVendedoresDashboardRoute
+  '/_vendedor/vendedores/propiedades/nueva': typeof VendedorVendedoresPropiedadesNuevaRoute
   '/_vendedor/vendedores/propiedades/$id/editar': typeof VendedorVendedoresPropiedadesIdEditarRoute
 }
 export interface FileRouteTypes {
@@ -149,11 +168,13 @@ export interface FileRouteTypes {
     | '/propiedades'
     | '/publica'
     | '/renta'
+    | '/tasacion'
     | '/admin'
     | '/propiedades/$id'
     | '/vendedores/login'
     | '/vendedores/signup'
     | '/vendedores/dashboard'
+    | '/vendedores/propiedades/nueva'
     | '/vendedores/propiedades/$id/editar'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -163,11 +184,13 @@ export interface FileRouteTypes {
     | '/propiedades'
     | '/publica'
     | '/renta'
+    | '/tasacion'
     | '/admin'
     | '/propiedades/$id'
     | '/vendedores/login'
     | '/vendedores/signup'
     | '/vendedores/dashboard'
+    | '/vendedores/propiedades/nueva'
     | '/vendedores/propiedades/$id/editar'
   id:
     | '__root__'
@@ -179,11 +202,13 @@ export interface FileRouteTypes {
     | '/propiedades'
     | '/publica'
     | '/renta'
+    | '/tasacion'
     | '/_admin/admin'
     | '/propiedades/$id'
     | '/vendedores/login'
     | '/vendedores/signup'
     | '/_vendedor/vendedores/dashboard'
+    | '/_vendedor/vendedores/propiedades/nueva'
     | '/_vendedor/vendedores/propiedades/$id/editar'
   fileRoutesById: FileRoutesById
 }
@@ -196,12 +221,20 @@ export interface RootRouteChildren {
   PropiedadesRoute: typeof PropiedadesRouteWithChildren
   PublicaRoute: typeof PublicaRoute
   RentaRoute: typeof RentaRoute
+  TasacionRoute: typeof TasacionRoute
   VendedoresLoginRoute: typeof VendedoresLoginRoute
   VendedoresSignupRoute: typeof VendedoresSignupRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tasacion': {
+      id: '/tasacion'
+      path: '/tasacion'
+      fullPath: '/tasacion'
+      preLoaderRoute: typeof TasacionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/renta': {
       id: '/renta'
       path: '/renta'
@@ -293,6 +326,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VendedorVendedoresDashboardRouteImport
       parentRoute: typeof VendedorRoute
     }
+    '/_vendedor/vendedores/propiedades/nueva': {
+      id: '/_vendedor/vendedores/propiedades/nueva'
+      path: '/vendedores/propiedades/nueva'
+      fullPath: '/vendedores/propiedades/nueva'
+      preLoaderRoute: typeof VendedorVendedoresPropiedadesNuevaRouteImport
+      parentRoute: typeof VendedorRoute
+    }
     '/_vendedor/vendedores/propiedades/$id/editar': {
       id: '/_vendedor/vendedores/propiedades/$id/editar'
       path: '/vendedores/propiedades/$id/editar'
@@ -315,11 +355,14 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface VendedorRouteChildren {
   VendedorVendedoresDashboardRoute: typeof VendedorVendedoresDashboardRoute
+  VendedorVendedoresPropiedadesNuevaRoute: typeof VendedorVendedoresPropiedadesNuevaRoute
   VendedorVendedoresPropiedadesIdEditarRoute: typeof VendedorVendedoresPropiedadesIdEditarRoute
 }
 
 const VendedorRouteChildren: VendedorRouteChildren = {
   VendedorVendedoresDashboardRoute: VendedorVendedoresDashboardRoute,
+  VendedorVendedoresPropiedadesNuevaRoute:
+    VendedorVendedoresPropiedadesNuevaRoute,
   VendedorVendedoresPropiedadesIdEditarRoute:
     VendedorVendedoresPropiedadesIdEditarRoute,
 }
@@ -349,9 +392,20 @@ const rootRouteChildren: RootRouteChildren = {
   PropiedadesRoute: PropiedadesRouteWithChildren,
   PublicaRoute: PublicaRoute,
   RentaRoute: RentaRoute,
+  TasacionRoute: TasacionRoute,
   VendedoresLoginRoute: VendedoresLoginRoute,
   VendedoresSignupRoute: VendedoresSignupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
