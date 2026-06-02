@@ -5,7 +5,7 @@ import { PROPERTIES, ZONES, PROPERTY_TYPES, formatGTQ, type Operation, type Prop
 import { PropertyCard } from "@/components/property-card";
 import { fetchPublishedProperties } from "@/lib/properties-db";
 
-export const Route = createFileRoute("/propiedades")({
+export const Route = createFileRoute("/propiedades/")({
   validateSearch: (s: Record<string, unknown>) => ({
     zone: (s.zone as string) || "",
     type: (s.type as string) || "",
