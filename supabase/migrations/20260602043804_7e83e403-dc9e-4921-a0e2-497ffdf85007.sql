@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.notify_lead_webhook() FROM PUBLIC, anon, authenticated;
