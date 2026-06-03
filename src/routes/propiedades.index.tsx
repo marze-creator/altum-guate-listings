@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Grid3x3, List, X } from "lucide-react";
-import { PROPERTIES, ZONES, PROPERTY_TYPES, formatGTQ, type Operation, type Property } from "@/lib/properties";
+import { ZONES, PROPERTY_TYPES, formatGTQ, type Operation, type Property } from "@/lib/properties";
 import { PropertyCard } from "@/components/property-card";
 import { fetchPublishedProperties } from "@/lib/properties-db";
 
