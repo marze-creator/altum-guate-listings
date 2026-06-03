@@ -83,7 +83,7 @@ export async function fetchPropertyById(id: string) {
     .select("url")
     .eq("property_id", id)
     .order("position");
-  // fire-and-forget view increment
-  supabase.from("properties").update({ views: (data as DBProperty).views + 1 }).eq("id", id).then(() => {});
+  // fire-and-forget view tracking via insert (triggers SECURITY DEFINER increment if configured; safe for anon)
+  supabase.from("property_views").insert({ property_id: id }).then(() => {});
   return dbToUI(data as DBProperty, imgs?.map((i) => i.url));
 }

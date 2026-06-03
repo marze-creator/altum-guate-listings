@@ -36,7 +36,7 @@ function PropertiesPage() {
 
   const [dbProps, setDbProps] = useState<Property[] | null>(null);
   useEffect(() => { fetchPublishedProperties().then(setDbProps).catch(() => setDbProps([])); }, []);
-  const source = dbProps && dbProps.length > 0 ? dbProps : (dbProps === null ? PROPERTIES : PROPERTIES);
+  const source = dbProps ?? [];
 
   const filtered = useMemo(() => {
     let r = source.filter((p) => {
