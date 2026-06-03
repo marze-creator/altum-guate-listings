@@ -20,9 +20,9 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-md border-b border-border">
-      <div className="container-altum flex items-center justify-between h-20">
+      <div className="container-altum flex items-center justify-between h-28">
         <Link to="/" className="flex items-center gap-2" aria-label="ALTUM GROUP">
-          <img src={logo} alt="ALTUM GROUP" className="h-12 w-auto" width={160} height={48} />
+          <img src={logo} alt="ALTUM GROUP" className="h-20 md:h-24 w-auto" width={240} height={96} />
         </Link>
 
         <nav className="hidden lg:flex items-center gap-7">

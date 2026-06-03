@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Grid3x3, List, X } from "lucide-react";
-import { PROPERTIES, ZONES, PROPERTY_TYPES, formatGTQ, type Operation, type Property } from "@/lib/properties";
+import { ZONES, PROPERTY_TYPES, formatGTQ, type Operation, type Property } from "@/lib/properties";
 import { PropertyCard } from "@/components/property-card";
 import { fetchPublishedProperties } from "@/lib/properties-db";
 
@@ -36,7 +36,7 @@ function PropertiesPage() {
 
   const [dbProps, setDbProps] = useState<Property[] | null>(null);
   useEffect(() => { fetchPublishedProperties().then(setDbProps).catch(() => setDbProps([])); }, []);
-  const source = dbProps && dbProps.length > 0 ? dbProps : (dbProps === null ? PROPERTIES : PROPERTIES);
+  const source = dbProps ?? [];
 
   const filtered = useMemo(() => {
     let r = source.filter((p) => {
