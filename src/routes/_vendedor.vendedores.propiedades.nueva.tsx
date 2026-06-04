@@ -2,7 +2,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { ZONES, PROPERTY_TYPES } from "@/lib/properties";
+import { PROPERTY_TYPES } from "@/lib/properties";
+import { UBICACIONES_PREDEFINIDAS, DEPARTAMENTOS } from "@/lib/locations";
+import { MapPicker } from "@/components/map-picker";
 import { toast } from "sonner";
 import { ArrowLeft, Save, Upload } from "lucide-react";
 
