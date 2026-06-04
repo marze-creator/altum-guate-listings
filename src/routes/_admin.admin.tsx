@@ -280,6 +280,7 @@ function AdminPage() {
                   <th className="text-left p-4 hidden md:table-cell">Zona</th>
                   <th className="text-left p-4">Precio</th>
                   <th className="text-left p-4">Estado</th>
+                  <th className="text-left p-4">Métricas</th>
                   <th className="text-right p-4">Acciones</th>
                 </tr>
               </thead>
