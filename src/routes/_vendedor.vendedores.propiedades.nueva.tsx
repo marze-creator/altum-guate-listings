@@ -30,6 +30,7 @@ function NewProperty() {
   const nav = useNavigate();
   const [saving, setSaving] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
+  const [otra, setOtra] = useState(false);
   const [f, setF] = useState({
     title: "",
     description: "",
@@ -37,6 +38,7 @@ function NewProperty() {
     operation: "venta",
     type: "Casa",
     zone: "Zona 10",
+    city: "Guatemala",
     address: "",
     bedrooms: "0",
     bathrooms: "0",
@@ -44,6 +46,8 @@ function NewProperty() {
     parking: "0",
     year_built: "",
     status: "draft",
+    latitude: 14.6349,
+    longitude: -90.5069,
   });
 
   async function save() {
@@ -78,6 +82,9 @@ function NewProperty() {
           operation: f.operation as "venta" | "renta",
           type: (TYPE_MAP[f.type] || "casa") as "casa" | "apartamento" | "terreno" | "local",
           zone: f.zone,
+          city: f.city,
+          latitude: f.latitude,
+          longitude: f.longitude,
           address: f.address,
           bedrooms: Number(f.bedrooms),
           bathrooms: Number(f.bathrooms),
@@ -196,14 +203,31 @@ function NewProperty() {
             </select>
           </Field>
           
-          <Field label="Zona *">
-            <select 
-              value={f.zone} 
-              onChange={(e) => setF({ ...f, zone: e.target.value })} 
-              className="input-altum"
-            >
-              {ZONES.map((z) => <option key={z}>{z}</option>)}
+          <Field label="Departamento *">
+            <select value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })} className="input-altum">
+              {DEPARTAMENTOS.map((d) => <option key={d}>{d}</option>)}
             </select>
+          </Field>
+
+          <Field label="Zona / Municipio *">
+            {otra ? (
+              <input value={f.zone} onChange={(e) => setF({ ...f, zone: e.target.value })} placeholder="Especifica ubicación" className="input-altum" />
+            ) : (
+              <select
+                value={f.zone}
+                onChange={(e) => { if (e.target.value === "__otra__") { setOtra(true); setF({ ...f, zone: "" }); } else setF({ ...f, zone: e.target.value }); }}
+                className="input-altum"
+              >
+                <optgroup label="Ciudad de Guatemala">
+                  {UBICACIONES_PREDEFINIDAS.slice(0, 25).map((z) => <option key={z}>{z}</option>)}
+                </optgroup>
+                <optgroup label="Municipios / Frecuentes">
+                  {UBICACIONES_PREDEFINIDAS.slice(25).map((z) => <option key={z}>{z}</option>)}
+                </optgroup>
+                <option value="__otra__">Otra ubicación…</option>
+              </select>
+            )}
+            {otra && <button type="button" onClick={() => { setOtra(false); setF({ ...f, zone: "Zona 10" }); }} className="text-xs text-secondary mt-1">← Volver al listado</button>}
           </Field>
           
           <Field label="Precio (Q) *">
