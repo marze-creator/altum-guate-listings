@@ -304,6 +304,7 @@ function AdminPage() {
                         "bg-gray-100 text-gray-700"
                       }`}>{p.status}</span>
                     </td>
+                    <td className="p-4 text-xs whitespace-nowrap"><span title="Vistas">👁 {p.views ?? 0}</span> · <span title="PDF descargas">⬇ {p.pdf_downloads ?? 0}</span></td>
                     <td className="p-4">
                       <div className="flex justify-end gap-2">
                         <Link to="/propiedades/$id" params={{ id: p.id }} className="p-2 hover:bg-muted rounded-sm"><Eye size={14} /></Link>
