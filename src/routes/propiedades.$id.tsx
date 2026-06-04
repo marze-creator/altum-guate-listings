@@ -127,11 +127,16 @@ function PropertyDetail() {
             <a href="https://wa.me/50251014866" target="_blank" rel="noreferrer" className="mt-4 block text-center py-3 bg-secondary text-primary font-semibold text-sm uppercase tracking-wider rounded-sm hover:bg-secondary/85">
               Contactar por WhatsApp
             </a>
+            <button onClick={downloadPDF} className="mt-2 w-full inline-flex items-center justify-center gap-2 py-3 border border-primary text-primary font-semibold text-sm uppercase tracking-wider rounded-sm hover:bg-primary hover:text-white transition-colors">
+              <Download size={14} /> Descargar PDF
+            </button>
           </div>
 
           <InquiryForm propertyId={p.id} propertyTitle={p.title} />
         </aside>
       </div>
+
+      <Cotizador price={p.price} />
 
       <div className="mt-16 grid gap-12 lg:grid-cols-2">
         <div>
