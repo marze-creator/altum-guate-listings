@@ -2,7 +2,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { ZONES, PROPERTY_TYPES } from "@/lib/properties";
+import { PROPERTY_TYPES } from "@/lib/properties";
+import { UBICACIONES_PREDEFINIDAS, DEPARTAMENTOS } from "@/lib/locations";
+import { MapPicker } from "@/components/map-picker";
 import { toast } from "sonner";
 import { ArrowLeft, Save, Upload } from "lucide-react";
 
@@ -28,6 +30,7 @@ function NewProperty() {
   const nav = useNavigate();
   const [saving, setSaving] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
+  const [otra, setOtra] = useState(false);
   const [f, setF] = useState({
     title: "",
     description: "",
@@ -35,6 +38,7 @@ function NewProperty() {
     operation: "venta",
     type: "Casa",
     zone: "Zona 10",
+    city: "Guatemala",
     address: "",
     bedrooms: "0",
     bathrooms: "0",
@@ -42,6 +46,8 @@ function NewProperty() {
     parking: "0",
     year_built: "",
     status: "draft",
+    latitude: 14.6349,
+    longitude: -90.5069,
   });
 
   async function save() {
@@ -76,6 +82,9 @@ function NewProperty() {
           operation: f.operation as "venta" | "renta",
           type: (TYPE_MAP[f.type] || "casa") as "casa" | "apartamento" | "terreno" | "local",
           zone: f.zone,
+          city: f.city,
+          latitude: f.latitude,
+          longitude: f.longitude,
           address: f.address,
           bedrooms: Number(f.bedrooms),
           bathrooms: Number(f.bathrooms),
@@ -194,14 +203,31 @@ function NewProperty() {
             </select>
           </Field>
           
-          <Field label="Zona *">
-            <select 
-              value={f.zone} 
-              onChange={(e) => setF({ ...f, zone: e.target.value })} 
-              className="input-altum"
-            >
-              {ZONES.map((z) => <option key={z}>{z}</option>)}
+          <Field label="Departamento *">
+            <select value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })} className="input-altum">
+              {DEPARTAMENTOS.map((d) => <option key={d}>{d}</option>)}
             </select>
+          </Field>
+
+          <Field label="Zona / Municipio *">
+            {otra ? (
+              <input value={f.zone} onChange={(e) => setF({ ...f, zone: e.target.value })} placeholder="Especifica ubicación" className="input-altum" />
+            ) : (
+              <select
+                value={f.zone}
+                onChange={(e) => { if (e.target.value === "__otra__") { setOtra(true); setF({ ...f, zone: "" }); } else setF({ ...f, zone: e.target.value }); }}
+                className="input-altum"
+              >
+                <optgroup label="Ciudad de Guatemala">
+                  {UBICACIONES_PREDEFINIDAS.slice(0, 25).map((z) => <option key={z}>{z}</option>)}
+                </optgroup>
+                <optgroup label="Municipios / Frecuentes">
+                  {UBICACIONES_PREDEFINIDAS.slice(25).map((z) => <option key={z}>{z}</option>)}
+                </optgroup>
+                <option value="__otra__">Otra ubicación…</option>
+              </select>
+            )}
+            {otra && <button type="button" onClick={() => { setOtra(false); setF({ ...f, zone: "Zona 10" }); }} className="text-xs text-secondary mt-1">← Volver al listado</button>}
           </Field>
           
           <Field label="Precio (Q) *">
@@ -288,6 +314,13 @@ function NewProperty() {
             className="input-altum" 
           />
         </Field>
+
+        <div>
+          <p className="block text-xs uppercase tracking-wider text-primary font-semibold mb-2">Ubicación exacta en el mapa</p>
+          <p className="text-xs text-muted-foreground mb-2">Arrastra el pin o haz clic para fijar la ubicación.</p>
+          <MapPicker lat={f.latitude} lng={f.longitude} onChange={(lat, lng) => setF((s) => ({ ...s, latitude: lat, longitude: lng }))} />
+          <p className="text-xs text-muted-foreground mt-2">Lat: {f.latitude.toFixed(6)} · Lng: {f.longitude.toFixed(6)}</p>
+        </div>
 
         <div className="pt-4 border-t border-border">
           <p className="text-xs uppercase tracking-wider text-primary font-semibold mb-2">

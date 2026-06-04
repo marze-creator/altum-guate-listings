@@ -1,10 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Bath, BedDouble, Check, MapPin, Maximize, Star } from "lucide-react";
-import { PROPERTIES, formatGTQ, type Property } from "@/lib/properties";
+import { Bath, BedDouble, Check, Download, MapPin, Maximize, Star } from "lucide-react";
+import { formatGTQ, type Property } from "@/lib/properties";
 import { PropertyCard } from "@/components/property-card";
 import { fetchPropertyById, fetchPublishedProperties } from "@/lib/properties-db";
 import { InquiryForm } from "@/components/inquiry-form";
+import { Cotizador } from "@/components/cotizador";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/propiedades/$id")({
   head: () => ({
@@ -23,7 +26,6 @@ function PropertyDetail() {
   useEffect(() => {
     let canceled = false;
     (async () => {
-      // Try DB first
       try {
         const db = await fetchPropertyById(id);
         if (canceled) return;
@@ -33,17 +35,26 @@ function PropertyDetail() {
           if (!canceled) setSimilar(all.filter((x) => x.id !== db.id && x.type === db.type).slice(0, 3));
           return;
         }
-      } catch {}
-      // Fallback to mock
-      const mock = PROPERTIES.find((x) => x.id === id);
-      if (canceled) return;
-      if (mock) {
-        setP(mock);
-        setSimilar(PROPERTIES.filter((x) => x.id !== mock.id && x.type === mock.type).slice(0, 3));
-      } else setNotFound(true);
+        setNotFound(true);
+      } catch {
+        if (!canceled) setNotFound(true);
+      }
     })();
     return () => { canceled = true; };
   }, [id]);
+
+  async function downloadPDF() {
+    if (!p) return;
+    toast.info("Generando PDF…");
+    try {
+      const { generatePropertyPDF } = await import("@/lib/pdf-generator");
+      await generatePropertyPDF(p);
+      // Track download as a property_view with referrer marker
+      supabase.from("property_views").insert({ property_id: p.id, referrer: "pdf_download" }).then(() => {});
+    } catch (e: any) {
+      toast.error("Error generando PDF: " + (e?.message ?? "desconocido"));
+    }
+  }
 
   if (notFound) {
     return (
@@ -116,11 +127,16 @@ function PropertyDetail() {
             <a href="https://wa.me/50251014866" target="_blank" rel="noreferrer" className="mt-4 block text-center py-3 bg-secondary text-primary font-semibold text-sm uppercase tracking-wider rounded-sm hover:bg-secondary/85">
               Contactar por WhatsApp
             </a>
+            <button onClick={downloadPDF} className="mt-2 w-full inline-flex items-center justify-center gap-2 py-3 border border-primary text-primary font-semibold text-sm uppercase tracking-wider rounded-sm hover:bg-primary hover:text-white transition-colors">
+              <Download size={14} /> Descargar PDF
+            </button>
           </div>
 
           <InquiryForm propertyId={p.id} propertyTitle={p.title} />
         </aside>
       </div>
+
+      <Cotizador price={p.price} />
 
       <div className="mt-16 grid gap-12 lg:grid-cols-2">
         <div>

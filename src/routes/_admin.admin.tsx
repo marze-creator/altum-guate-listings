@@ -20,6 +20,7 @@ export const Route = createFileRoute("/_admin/admin")({
 interface PendingProp {
   id: string; title: string; price: number; zone: string; status: string;
   operation: string; cover_image: string | null; created_at: string;
+  views?: number; pdf_downloads?: number;
 }
 interface Inquiry {
   id: string; name: string; email: string; phone: string | null;
@@ -279,6 +280,7 @@ function AdminPage() {
                   <th className="text-left p-4 hidden md:table-cell">Zona</th>
                   <th className="text-left p-4">Precio</th>
                   <th className="text-left p-4">Estado</th>
+                  <th className="text-left p-4">Métricas</th>
                   <th className="text-right p-4">Acciones</th>
                 </tr>
               </thead>
@@ -303,6 +305,7 @@ function AdminPage() {
                         "bg-gray-100 text-gray-700"
                       }`}>{p.status}</span>
                     </td>
+                    <td className="p-4 text-xs whitespace-nowrap"><span title="Vistas">👁 {p.views ?? 0}</span> · <span title="PDF descargas">⬇ {p.pdf_downloads ?? 0}</span></td>
                     <td className="p-4">
                       <div className="flex justify-end gap-2">
                         <Link to="/propiedades/$id" params={{ id: p.id }} className="p-2 hover:bg-muted rounded-sm"><Eye size={14} /></Link>
