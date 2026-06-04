@@ -3,7 +3,7 @@
 // Triggered by Supabase Database Webhooks (INSERT on inquiries, property_submissions, valuations).
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const NOTIFY_TO = "info@altumgroup.com.gt";
+const NOTIFY_TO = "marcelo@altumgroup.com.gt";
 const NOTIFY_FROM = "Altum Group <admin@altumgroup.com.gt>";
 
 const corsHeaders = {
