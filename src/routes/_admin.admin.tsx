@@ -20,6 +20,7 @@ export const Route = createFileRoute("/_admin/admin")({
 interface PendingProp {
   id: string; title: string; price: number; zone: string; status: string;
   operation: string; cover_image: string | null; created_at: string;
+  views?: number; pdf_downloads?: number;
 }
 interface Inquiry {
   id: string; name: string; email: string; phone: string | null;
