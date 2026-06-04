@@ -315,6 +315,13 @@ function NewProperty() {
           />
         </Field>
 
+        <div>
+          <p className="block text-xs uppercase tracking-wider text-primary font-semibold mb-2">Ubicación exacta en el mapa</p>
+          <p className="text-xs text-muted-foreground mb-2">Arrastra el pin o haz clic para fijar la ubicación.</p>
+          <MapPicker lat={f.latitude} lng={f.longitude} onChange={(lat, lng) => setF((s) => ({ ...s, latitude: lat, longitude: lng }))} />
+          <p className="text-xs text-muted-foreground mt-2">Lat: {f.latitude.toFixed(6)} · Lng: {f.longitude.toFixed(6)}</p>
+        </div>
+
         <div className="pt-4 border-t border-border">
           <p className="text-xs uppercase tracking-wider text-primary font-semibold mb-2">
             Fotos de la propiedad
