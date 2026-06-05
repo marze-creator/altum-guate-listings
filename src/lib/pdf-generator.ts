@@ -1,4 +1,4 @@
-// Client-only PDF generator for ALTUM property brochures.
+/ Client-only PDF generator for ALTUM property brochures.
 import { jsPDF } from "jspdf";
 import type { Property } from "@/lib/properties";
 import { buildMortgageMatrix, fmtGTQ, TERMS_YEARS } from "@/lib/mortgage";
@@ -18,38 +18,62 @@ interface PropertyExtra {
   features?: string[];
 }
 
-async function loadImage(url: string): Promise<HTMLImageElement | null> {
-  try {
-    return await new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => resolve(img);
-      img.onerror = reject;
-      img.src = url;
-    });
-  } catch {
-    return null;
-  }
+function loadImage(url: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
 }
 
-async function imgToDataUrl(img: HTMLImageElement): Promise<string | null> {
+// Recorta la imagen para llenar el marco (estilo object-fit cover),
+// centrada y sin deformar. Devuelve un JPEG en dataURL.
+function coverCrop(img: HTMLImageElement, boxW: number, boxH: number): string | null {
   try {
+    const scale = 3;
     const canvas = document.createElement("canvas");
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
+    canvas.width = Math.round(boxW * scale);
+    canvas.height = Math.round(boxH * scale);
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
-    ctx.drawImage(img, 0, 0);
-    return canvas.toDataURL("image/jpeg", 0.85);
+
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+    if (!iw || !ih) return null;
+
+    const boxRatio = canvas.width / canvas.height;
+    const imgRatio = iw / ih;
+
+    let sx = 0;
+    let sy = 0;
+    let sw = iw;
+    let sh = ih;
+
+    if (imgRatio > boxRatio) {
+      sh = ih;
+      sw = ih * boxRatio;
+      sx = (iw - sw) / 2;
+    } else {
+      sw = iw;
+      sh = iw / boxRatio;
+      sy = (ih - sh) / 2;
+    }
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.88);
   } catch {
     return null;
   }
 }
 
-async function urlToDataUrl(url: string): Promise<string | null> {
+async function urlToCover(url: string, boxW: number, boxH: number): Promise<string | null> {
   const img = await loadImage(url);
   if (!img) return null;
-  return imgToDataUrl(img);
+  return coverCrop(img, boxW, boxH);
 }
 
 export async function generatePropertyPDF(
@@ -85,43 +109,54 @@ export async function generatePropertyPDF(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(110, 110, 110);
-  doc.text(`${p.type} · ${p.operation === "venta" ? "Venta" : "Renta"} · ${p.zone}`, M, y);
+  const opLabel = p.operation === "venta" ? "Venta" : "Renta";
+  doc.text(p.type + "  ·  " + opLabel + "  ·  " + p.zone, M, y);
   y += 18;
 
-  // Main image
+  // Main image (cover-crop, sin deformar)
   const cover = (p.images && p.images[0]) || p.image || p.cover_image;
   if (cover) {
-    const dataUrl = await urlToDataUrl(cover);
+    const imgH = 252;
+    const imgW = W - 2 * M;
+    const dataUrl = await urlToCover(cover, imgW, imgH);
     if (dataUrl) {
-      const imgH = 220;
-      try { doc.addImage(dataUrl, "JPEG", M, y, W - 2 * M, imgH); } catch {}
-      // Price overlay
-      doc.setFillColor(...NAVY);
-      doc.rect(M, y + imgH - 38, 220, 38, "F");
+      try { doc.addImage(dataUrl, "JPEG", M, y, imgW, imgH); } catch {}
+      // Hairline dorada bajo la foto
       doc.setFillColor(...GOLD);
-      doc.rect(M, y + imgH - 38, 4, 38, "F");
+      doc.rect(M, y + imgH, imgW, 2, "F");
+      // Etiqueta de precio
+      const tagW = 188;
+      const tagH = 40;
+      doc.setFillColor(...NAVY);
+      doc.rect(M + 16, y + imgH - tagH - 16, tagW, tagH, "F");
+      doc.setFillColor(...GOLD);
+      doc.rect(M + 16, y + imgH - tagH - 16, 4, tagH, "F");
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(18);
+      doc.setFontSize(17);
       const priceLabel = fmtGTQ(p.price) + (p.operation === "renta" ? "/mes" : "");
-      doc.text(priceLabel, M + 14, y + imgH - 14);
-      y += imgH + 14;
+      doc.text(priceLabel, M + 30, y + imgH - 16 - 14);
+      y += imgH + 18;
     }
   }
 
-  // Secondary gallery: 4 thumbs, 130pt tall
+  // Secondary gallery: 4 thumbs (cover-crop, sin deformar)
   const extras = (p.images ?? []).slice(1, 5);
   if (extras.length) {
     const gap = 8;
-    const thumbH = 130;
+    const thumbH = 116;
     const thumbW = (W - 2 * M - gap * (extras.length - 1)) / extras.length;
     for (let i = 0; i < extras.length; i++) {
-      const d = await urlToDataUrl(extras[i]);
+      const d = await urlToCover(extras[i], thumbW, thumbH);
+      const tx = M + i * (thumbW + gap);
       if (d) {
-        try { doc.addImage(d, "JPEG", M + i * (thumbW + gap), y, thumbW, thumbH); } catch {}
+        try { doc.addImage(d, "JPEG", tx, y, thumbW, thumbH); } catch {}
+        doc.setDrawColor(...GOLD);
+        doc.setLineWidth(0.4);
+        doc.rect(tx, y, thumbW, thumbH);
       }
     }
-    y += thumbH + 16;
+    y += thumbH + 18;
   }
 
   // Specs bar
@@ -202,8 +237,8 @@ export async function generatePropertyPDF(
   doc.text("Cotización referencial (8% anual)", M, y);
   y += 14;
   const matrix = buildMortgageMatrix(p.price, 0.08);
-  // Header row
-  const headers = ["Enganche", "Monto", "A financiar", ...TERMS_YEARS.map((t) => `${t} años`)];
+  const termHeaders = TERMS_YEARS.map((t) => t + " años");
+  const headers = ["Enganche", "Monto", "A financiar"].concat(termHeaders);
   const colCount = headers.length;
   const tableW = W - 2 * M;
   const colWp = tableW / colCount;
@@ -220,12 +255,9 @@ export async function generatePropertyPDF(
   doc.setFont("helvetica", "normal");
   matrix.forEach((row, ri) => {
     const ry = y + ri * 22 + 14;
-    const cells = [
-      `${(row.downPct * 100).toFixed(0)}%`,
-      fmtGTQ(row.down),
-      fmtGTQ(row.financed),
-      ...row.terms.map((t) => fmtGTQ(t.monthly) + "/m"),
-    ];
+    const pct = (row.downPct * 100).toFixed(0) + "%";
+    const monthly = row.terms.map((t) => fmtGTQ(t.monthly) + "/m");
+    const cells = [pct, fmtGTQ(row.down), fmtGTQ(row.financed)].concat(monthly);
     cells.forEach((c, i) => {
       doc.setFont("helvetica", i === 0 ? "bold" : "normal");
       doc.text(c, M + i * colWp + colWp / 2, ry, { align: "center" });
@@ -241,9 +273,8 @@ export async function generatePropertyPDF(
     doc.setTextColor(...NAVY);
     doc.text("Ubicación", M, y);
     y += 12;
-    // Use OSM static map alternative — staticmap.openstreetmap.de
-    const staticUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${p.lat},${p.lng}&zoom=15&size=800x300&markers=${p.lat},${p.lng},red-pushpin`;
-    const md = await urlToDataUrl(staticUrl);
+    const staticUrl = "https://staticmap.openstreetmap.de/staticmap.php?center=" + p.lat + "," + p.lng + "&zoom=15&size=800x300&markers=" + p.lat + "," + p.lng + ",red-pushpin";
+    const md = await urlToCover(staticUrl, W - 2 * M, 140);
     if (md) {
       try { doc.addImage(md, "JPEG", M, y, W - 2 * M, 140); } catch {}
       y += 150;
@@ -251,7 +282,7 @@ export async function generatePropertyPDF(
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       doc.setTextColor(60, 60, 60);
-      doc.text(`Lat ${p.lat}, Lng ${p.lng}`, M, y + 10);
+      doc.text("Lat " + p.lat + ", Lng " + p.lng, M, y + 10);
       y += 20;
     }
   }
@@ -276,7 +307,7 @@ export async function generatePropertyPDF(
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.textWithLink("WhatsApp Asesor", W - M - 90, y + 38, {
-    url: `https://wa.me/${WHATSAPP_CORP}`,
+    url: "https://wa.me/" + WHATSAPP_CORP,
     align: "center",
   });
   doc.setTextColor(...NAVY);
@@ -296,8 +327,9 @@ export async function generatePropertyPDF(
   doc.setTextColor(...GOLD);
   doc.text("Real Estate Premium · Guatemala", M, H - 26);
   doc.setTextColor(220, 220, 220);
-  doc.text(`WhatsApp +${WHATSAPP_CORP}  ·  info@altumgroup.com.gt  ·  ${SITE_URL}`, M, H - 14);
+  const footLine = "WhatsApp +" + WHATSAPP_CORP + "  ·  info@altumgroup.com.gt  ·  " + SITE_URL;
+  doc.text(footLine, M, H - 14);
 
   const safeName = (p.title || "propiedad").replace(/[^\w-]+/g, "_").slice(0, 60);
-  doc.save(`ALTUM-${safeName}.pdf`);
+  doc.save("ALTUM-" + safeName + ".pdf");
 }
