@@ -1,4 +1,4 @@
-/ Client-only PDF generator for ALTUM property brochures.
+// Client-only PDF generator for ALTUM property brochures.
 import { jsPDF } from "jspdf";
 import type { Property } from "@/lib/properties";
 import { buildMortgageMatrix, fmtGTQ, TERMS_YEARS } from "@/lib/mortgage";
