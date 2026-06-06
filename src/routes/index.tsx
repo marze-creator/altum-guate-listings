@@ -38,9 +38,8 @@ function HomePage() {
   useEffect(() => {
     fetchPublishedProperties().then(setDbProps).catch(() => {});
   }, []);
-  const all = dbProps.length > 0 ? dbProps : PROPERTIES;
-  const featuredRaw = (dbProps.length > 0 ? dbProps.filter((p: any) => (p as any).featured) : PROPERTIES.filter((p) => p.badge));
-  const featured = (featuredRaw.length > 0 ? featuredRaw : all).slice(0, 6);
+  const all = dbProps;
+  const featured = all.filter((p: any) => (p as any).featured).slice(0, 6);
   const latest = all.slice(0, 5);
   const navigate = useNavigate();
   const [zone, setZone] = useState("");
