@@ -45,6 +45,7 @@ function NewProperty() {
     area_m2: "0",
     parking: "0",
     year_built: "",
+    features: "",
     status: "draft",
     latitude: 14.6349,
     longitude: -90.5069,
