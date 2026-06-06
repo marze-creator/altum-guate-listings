@@ -242,6 +242,7 @@ function Field({ label, children, hint }: { label: string; children: React.React
     <label className="block">
       <span className="block text-xs uppercase tracking-wider text-primary font-semibold mb-1">{label}</span>
       {children}
+      {hint && <span className="block text-xs text-muted-foreground mt-1">{hint}</span>}
     </label>
   );
 }
