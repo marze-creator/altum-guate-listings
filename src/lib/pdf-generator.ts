@@ -157,14 +157,12 @@ export async function generatePropertyPDF(
     y += thumbH + 18;
   }
 
-  // Specs bar
+  // Specs bar — solo campos que el vendedor llena al publicar
   const specs = [
-    { l: "Habs", v: p.beds },
-    { l: "Baños", v: p.baths },
+    { l: "Habitaciones", v: p.beds || "—" },
+    { l: "Baños", v: p.baths || "—" },
     { l: "Parqueos", v: p.parking ?? "—" },
-    { l: "m² const.", v: p.area },
-    { l: "m² terreno", v: p.area_terreno ?? "—" },
-    { l: "Niveles", v: p.niveles ?? "—" },
+    { l: "m² construcción", v: p.area || "—" },
   ];
   doc.setFillColor(...CREAM);
   doc.rect(M, y, W - 2 * M, 46, "F");
