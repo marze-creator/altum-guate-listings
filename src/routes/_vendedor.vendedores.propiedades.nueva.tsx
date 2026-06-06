@@ -92,6 +92,7 @@ function NewProperty() {
           area_m2: Number(f.area_m2),
           parking: Number(f.parking),
           year_built: f.year_built ? Number(f.year_built) : null,
+          features: f.features.split(",").map((s) => s.trim()).filter(Boolean),
           status: f.status as "draft" | "pending" | "published",
         })
         .select()
