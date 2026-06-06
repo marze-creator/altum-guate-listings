@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { ChevronRight, FileSearch, HandCoins, Handshake, Key } from "lucide-react";
-import { PROPERTIES } from "@/lib/properties";
 import { PropertyCard } from "@/components/property-card";
+import { fetchPublishedProperties } from "@/lib/properties-db";
+import type { Property } from "@/lib/properties";
 
 export const Route = createFileRoute("/compra")({
   head: () => ({
