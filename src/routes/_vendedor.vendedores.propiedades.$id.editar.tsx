@@ -192,6 +192,10 @@ function EditProperty() {
 
         <Field label="Dirección"><input value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} className="input-altum" /></Field>
 
+        <Field label="Amenidades / Características" hint="Separá con comas. Aparecen en el detalle y en el PDF.">
+          <input value={f.features} onChange={(e) => setF({ ...f, features: e.target.value })} placeholder="Piscina, Gimnasio, Seguridad 24/7" className="input-altum" />
+        </Field>
+
         <div>
           <p className="block text-xs uppercase tracking-wider text-primary font-semibold mb-2">Ubicación en el mapa</p>
           <p className="text-xs text-muted-foreground mb-2">Arrastra el pin o haz clic en el mapa para fijar la ubicación exacta.</p>
