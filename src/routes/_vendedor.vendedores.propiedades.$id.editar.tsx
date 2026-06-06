@@ -50,6 +50,7 @@ function EditProperty() {
         area_m2: String(data.area_m2 ?? 0),
         parking: String(data.parking ?? 0),
         year_built: data.year_built ? String(data.year_built) : "",
+        features: Array.isArray(data.features) ? data.features.join(", ") : "",
         status: data.status ?? "draft",
         latitude: Number(data.latitude ?? 14.6349),
         longitude: Number(data.longitude ?? -90.5069),
