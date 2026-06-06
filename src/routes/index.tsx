@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Award, Building2, ChevronRight, Search, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 import hero from "@/assets/hero-luxury.jpg";
-import { PROPERTIES, ZONES, PROPERTY_TYPES, type Property } from "@/lib/properties";
+import { ZONES, PROPERTY_TYPES, type Property } from "@/lib/properties";
 import { PropertyCard } from "@/components/property-card";
 import { fetchPublishedProperties } from "@/lib/properties-db";
 
