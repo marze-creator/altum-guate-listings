@@ -237,7 +237,7 @@ function EditProperty() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
     <label className="block">
       <span className="block text-xs uppercase tracking-wider text-primary font-semibold mb-1">{label}</span>
