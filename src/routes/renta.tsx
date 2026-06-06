@@ -19,7 +19,9 @@ export const Route = createFileRoute("/renta")({
 });
 
 function RentaPage() {
-  const renta = PROPERTIES.filter((p) => p.operation === "renta");
+  const [props, setProps] = useState<Property[]>([]);
+  useEffect(() => { fetchPublishedProperties().then(setProps).catch(() => {}); }, []);
+  const renta = props.filter((p) => p.operation === "renta");
   return (
     <>
       <section className="py-24 bg-secondary/30">
