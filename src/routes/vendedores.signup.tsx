@@ -58,7 +58,8 @@ function SignupPage() {
       await supabase.from("admin_requests").insert({ 
         user_id: data.user.id, 
         reason: reasonText,
-        status: "pending"
+        status: "pending",
+        requested_role: "vendedor",
       });
     }
     
