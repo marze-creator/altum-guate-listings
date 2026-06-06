@@ -12,8 +12,6 @@ const SITE_URL = "https://altumgroup.com.gt";
 
 interface PropertyExtra {
   parking?: number;
-  area_terreno?: number;
-  niveles?: number;
   cover_image?: string | null;
   features?: string[];
 }
