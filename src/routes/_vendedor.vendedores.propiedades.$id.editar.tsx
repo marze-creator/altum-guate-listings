@@ -28,7 +28,7 @@ function EditProperty() {
   const [f, setF] = useState({
     title: "", description: "", price: "", operation: "venta", type: "Casa",
     zone: "Zona 10", city: "Guatemala", address: "", bedrooms: "0", bathrooms: "0",
-    area_m2: "0", parking: "0", year_built: "", status: "draft",
+    area_m2: "0", parking: "0", year_built: "", features: "", status: "draft",
     latitude: 14.6349, longitude: -90.5069,
   });
 
