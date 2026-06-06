@@ -28,7 +28,7 @@ function EditProperty() {
   const [f, setF] = useState({
     title: "", description: "", price: "", operation: "venta", type: "Casa",
     zone: "Zona 10", city: "Guatemala", address: "", bedrooms: "0", bathrooms: "0",
-    area_m2: "0", parking: "0", year_built: "", status: "draft",
+    area_m2: "0", parking: "0", year_built: "", features: "", status: "draft",
     latitude: 14.6349, longitude: -90.5069,
   });
 
@@ -50,6 +50,7 @@ function EditProperty() {
         area_m2: String(data.area_m2 ?? 0),
         parking: String(data.parking ?? 0),
         year_built: data.year_built ? String(data.year_built) : "",
+        features: Array.isArray(data.features) ? data.features.join(", ") : "",
         status: data.status ?? "draft",
         latitude: Number(data.latitude ?? 14.6349),
         longitude: Number(data.longitude ?? -90.5069),
@@ -89,6 +90,7 @@ function EditProperty() {
         area_m2: Number(f.area_m2),
         parking: Number(f.parking),
         year_built: f.year_built ? Number(f.year_built) : null,
+        features: f.features.split(",").map((s) => s.trim()).filter(Boolean),
         status: f.status as any,
         latitude: f.latitude,
         longitude: f.longitude,
@@ -190,6 +192,10 @@ function EditProperty() {
 
         <Field label="Dirección"><input value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} className="input-altum" /></Field>
 
+        <Field label="Amenidades / Características" hint="Separá con comas. Aparecen en el detalle y en el PDF.">
+          <input value={f.features} onChange={(e) => setF({ ...f, features: e.target.value })} placeholder="Piscina, Gimnasio, Seguridad 24/7" className="input-altum" />
+        </Field>
+
         <div>
           <p className="block text-xs uppercase tracking-wider text-primary font-semibold mb-2">Ubicación en el mapa</p>
           <p className="text-xs text-muted-foreground mb-2">Arrastra el pin o haz clic en el mapa para fijar la ubicación exacta.</p>
@@ -231,11 +237,12 @@ function EditProperty() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
     <label className="block">
       <span className="block text-xs uppercase tracking-wider text-primary font-semibold mb-1">{label}</span>
       {children}
+      {hint && <span className="block text-xs text-muted-foreground mt-1">{hint}</span>}
     </label>
   );
 }

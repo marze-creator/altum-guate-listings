@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Award, Building2, ChevronRight, Search, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 import hero from "@/assets/hero-luxury.jpg";
-import { PROPERTIES, ZONES, PROPERTY_TYPES, type Property } from "@/lib/properties";
+import { ZONES, PROPERTY_TYPES, type Property } from "@/lib/properties";
 import { PropertyCard } from "@/components/property-card";
 import { fetchPublishedProperties } from "@/lib/properties-db";
 
@@ -38,9 +38,8 @@ function HomePage() {
   useEffect(() => {
     fetchPublishedProperties().then(setDbProps).catch(() => {});
   }, []);
-  const all = dbProps.length > 0 ? dbProps : PROPERTIES;
-  const featuredRaw = (dbProps.length > 0 ? dbProps.filter((p: any) => (p as any).featured) : PROPERTIES.filter((p) => p.badge));
-  const featured = (featuredRaw.length > 0 ? featuredRaw : all).slice(0, 6);
+  const all = dbProps;
+  const featured = all.filter((p: any) => (p as any).featured).slice(0, 6);
   const latest = all.slice(0, 5);
   const navigate = useNavigate();
   const [zone, setZone] = useState("");

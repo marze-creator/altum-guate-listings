@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
-import { PROPERTIES } from "@/lib/properties";
 import { PropertyCard } from "@/components/property-card";
+import { fetchPublishedProperties } from "@/lib/properties-db";
+import type { Property } from "@/lib/properties";
 
 export const Route = createFileRoute("/renta")({
   head: () => ({
@@ -17,7 +19,9 @@ export const Route = createFileRoute("/renta")({
 });
 
 function RentaPage() {
-  const renta = PROPERTIES.filter((p) => p.operation === "renta");
+  const [props, setProps] = useState<Property[]>([]);
+  useEffect(() => { fetchPublishedProperties().then(setProps).catch(() => {}); }, []);
+  const renta = props.filter((p) => p.operation === "renta");
   return (
     <>
       <section className="py-24 bg-secondary/30">

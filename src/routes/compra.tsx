@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { ChevronRight, FileSearch, HandCoins, Handshake, Key } from "lucide-react";
-import { PROPERTIES } from "@/lib/properties";
 import { PropertyCard } from "@/components/property-card";
+import { fetchPublishedProperties } from "@/lib/properties-db";
+import type { Property } from "@/lib/properties";
 
 export const Route = createFileRoute("/compra")({
   head: () => ({
@@ -24,7 +26,9 @@ const STEPS = [
 ];
 
 function ComprarPage() {
-  const venta = PROPERTIES.filter((p) => p.operation === "venta").slice(0, 6);
+  const [props, setProps] = useState<Property[]>([]);
+  useEffect(() => { fetchPublishedProperties().then(setProps).catch(() => {}); }, []);
+  const venta = props.filter((p) => p.operation === "venta").slice(0, 6);
   return (
     <>
       <section className="py-24 bg-primary text-primary-foreground">

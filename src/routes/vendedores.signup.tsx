@@ -15,6 +15,16 @@ export const Route = createFileRoute("/vendedores/signup")({
   component: SignupPage,
 });
 
+const SITE_URL = "https://altumgroup.com.gt";
+function siteRedirect(path: string) {
+  if (typeof window === "undefined") return SITE_URL + path;
+  const host = window.location.hostname;
+  // En dev/preview de Lovable usamos altumgroup.com.gt para que el correo
+  // de confirmación regrese al sitio real, no al dominio interno.
+  const isPreview = host.endsWith(".lovable.app") || host.endsWith(".lovable.dev") || host === "localhost";
+  return (isPreview ? SITE_URL : window.location.origin) + path;
+}
+
 function SignupPage() {
   const nav = useNavigate();
   const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", reason: "" });
@@ -29,7 +39,7 @@ function SignupPage() {
       email: form.email,
       password: form.password,
       options: {
-        emailRedirectTo: window.location.origin + "/vendedores/dashboard",
+        emailRedirectTo: siteRedirect("/vendedores/dashboard"),
         data: { full_name: form.name, phone: form.phone },
       },
     });
@@ -42,13 +52,14 @@ function SignupPage() {
     
     if (data.user) {
       const reasonText = form.reason 
-        ? "Solicitud acceso vendedor — " + form.name + ": " + form.reason
-        : "Solicitud acceso vendedor — " + form.name;
+        ? "Solicitud acceso VENDEDOR — " + form.name + ": " + form.reason
+        : "Solicitud acceso VENDEDOR — " + form.name;
         
       await supabase.from("admin_requests").insert({ 
         user_id: data.user.id, 
         reason: reasonText,
-        status: "pending"
+        status: "pending",
+        requested_role: "vendedor",
       });
     }
     
@@ -59,7 +70,7 @@ function SignupPage() {
 
   const google = async () => {
     const r = await lovable.auth.signInWithOAuth("google", { 
-      redirect_uri: window.location.origin + "/vendedores/dashboard"
+      redirect_uri: siteRedirect("/vendedores/dashboard")
     });
     if (r.error) toast.error("Error con Google");
   };

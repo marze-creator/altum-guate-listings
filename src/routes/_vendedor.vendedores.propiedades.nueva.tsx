@@ -45,6 +45,7 @@ function NewProperty() {
     area_m2: "0",
     parking: "0",
     year_built: "",
+    features: "",
     status: "draft",
     latitude: 14.6349,
     longitude: -90.5069,
@@ -91,6 +92,7 @@ function NewProperty() {
           area_m2: Number(f.area_m2),
           parking: Number(f.parking),
           year_built: f.year_built ? Number(f.year_built) : null,
+          features: f.features.split(",").map((s) => s.trim()).filter(Boolean),
           status: f.status as "draft" | "pending" | "published",
         })
         .select()
@@ -312,6 +314,15 @@ function NewProperty() {
             onChange={(e) => setF({ ...f, address: e.target.value })} 
             placeholder="Ej: 5ta avenida 12-34, Zona 14"
             className="input-altum" 
+          />
+        </Field>
+
+        <Field label="Amenidades / Características" hint="Separá con comas. Aparecen en el detalle y en el PDF.">
+          <input
+            value={f.features}
+            onChange={(e) => setF({ ...f, features: e.target.value })}
+            placeholder="Piscina, Gimnasio, Seguridad 24/7, Parqueo doble"
+            className="input-altum"
           />
         </Field>
 
