@@ -24,6 +24,7 @@ export interface DBProperty {
   bedrooms: number | null;
   bathrooms: number | null;
   area_m2: number | null;
+  parking: number | null;
   features: string[] | null;
   cover_image: string | null;
   status: string;
@@ -35,8 +36,9 @@ export interface DBProperty {
   owner_id: string;
 }
 
-export function dbToUI(p: DBProperty, images?: string[]): Property & { images: string[]; status: string; featured: boolean } {
+export function dbToUI(p: DBProperty, images?: string[]): Property & { images: string[]; status: string; featured: boolean; parking: number; features: string[] } {
   const imgs = images && images.length ? images : p.cover_image ? [p.cover_image] : [prop1];
+  const feats = p.features ?? [];
   return {
     id: p.id,
     title: p.title,
@@ -51,7 +53,9 @@ export function dbToUI(p: DBProperty, images?: string[]): Property & { images: s
     images: imgs,
     badge: p.featured ? "Destacado" : undefined,
     description: p.description ?? "",
-    amenities: p.features ?? [],
+    amenities: feats,
+    features: feats,
+    parking: p.parking ?? 0,
     agent: { name: "Asesor ALTUM", rating: 5 },
     lat: Number(p.latitude ?? 14.6),
     lng: Number(p.longitude ?? -90.5),
