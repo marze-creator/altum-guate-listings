@@ -16,6 +16,7 @@ interface Prop {
   id: string;
   title: string;
   price: number;
+  currency: string | null;
   zone: string;
   status: string;
   operation: string;
@@ -44,7 +45,7 @@ function Dashboard() {
     setLoading(true);
     const { data, error } = await supabase
       .from("properties")
-      .select("id,title,price,zone,status,operation,views,cover_image")
+      .select("id,title,price,currency,zone,status,operation,views,cover_image")
       .eq("owner_id", user!.id)
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
@@ -91,9 +92,20 @@ function Dashboard() {
     load();
   }
 
+  const published = props.filter((p) => p.status === "published");
+  const sale = published.filter((p) => p.operation === "venta");
+  const rent = published.filter((p) => p.operation === "renta");
+  const sum = (arr: Prop[], curr: "GTQ" | "USD") =>
+    arr.filter((p) => (p.currency ?? "GTQ") === curr).reduce((s, p) => s + Number(p.price || 0), 0);
+  const fmt = (n: number, c: "GTQ" | "USD") =>
+    new Intl.NumberFormat("es-GT", { style: "currency", currency: c, maximumFractionDigits: 0 }).format(n);
+  const potentialSaleGTQ = sum(sale, "GTQ");
+  const potentialSaleUSD = sum(sale, "USD");
+  const potentialRentGTQ = sum(rent, "GTQ");
+  const potentialRentUSD = sum(rent, "USD");
   const stats = {
     total: props.length,
-    published: props.filter((p) => p.status === "published").length,
+    published: published.length,
     pending: props.filter((p) => p.status === "pending" || p.status === "draft").length,
     views: props.reduce((s, p) => s + p.views, 0),
   };
@@ -196,6 +208,33 @@ function Dashboard() {
         </div>
       )}
 
+
+
+      {published.length > 0 && (
+        <div className="mb-8 grid md:grid-cols-2 gap-4">
+          <div className="bg-card border border-border rounded-sm p-5">
+            <p className="text-xs uppercase tracking-wider text-secondary font-semibold">Potencial de venta</p>
+            <p className="text-xs text-muted-foreground mt-1">{sale.length} propiedade(s) publicadas en venta</p>
+            <div className="mt-3 space-y-1">
+              {potentialSaleGTQ > 0 && <p className="font-display text-2xl text-primary">{fmt(potentialSaleGTQ, "GTQ")}</p>}
+              {potentialSaleUSD > 0 && <p className="font-display text-2xl text-primary">{fmt(potentialSaleUSD, "USD")}</p>}
+              {potentialSaleGTQ === 0 && potentialSaleUSD === 0 && <p className="text-muted-foreground text-sm">—</p>}
+            </div>
+          </div>
+          <div className="bg-card border border-border rounded-sm p-5">
+            <p className="text-xs uppercase tracking-wider text-secondary font-semibold">Ingreso mensual potencial (renta)</p>
+            <p className="text-xs text-muted-foreground mt-1">{rent.length} propiedade(s) publicadas en renta</p>
+            <div className="mt-3 space-y-1">
+              {potentialRentGTQ > 0 && <p className="font-display text-2xl text-primary">{fmt(potentialRentGTQ, "GTQ")}<span className="text-xs text-muted-foreground">/mes</span></p>}
+              {potentialRentUSD > 0 && <p className="font-display text-2xl text-primary">{fmt(potentialRentUSD, "USD")}<span className="text-xs text-muted-foreground">/mes</span></p>}
+              {potentialRentGTQ === 0 && potentialRentUSD === 0 && <p className="text-muted-foreground text-sm">—</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
           { l: "Total", v: stats.total },
@@ -244,7 +283,7 @@ function Dashboard() {
                     </div>
                   </td>
                   <td className="p-4 hidden md:table-cell">{p.zone}</td>
-                  <td className="p-4 font-semibold">Q{p.price.toLocaleString()}</td>
+                  <td className="p-4 font-semibold">{(p.currency === "USD" ? "$" : "Q")}{p.price.toLocaleString()}</td>
                   <td className="p-4">
                     <span className={statusBadgeClass(p.status)}>
                       {p.status}

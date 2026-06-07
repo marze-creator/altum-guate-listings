@@ -16,6 +16,7 @@ export interface DBProperty {
   title: string;
   description: string | null;
   price: number;
+  currency: string | null;
   operation: string;
   type: string;
   zone: string;
@@ -46,6 +47,7 @@ export function dbToUI(p: DBProperty, images?: string[]): Property & { images: s
     operation: (p.operation === "renta" ? "renta" : "venta"),
     zone: p.zone,
     price: Number(p.price),
+    currency: (p.currency === "USD" ? "USD" : "GTQ"),
     beds: p.bedrooms ?? 0,
     baths: Number(p.bathrooms ?? 0),
     area: Number(p.area_m2 ?? 0),
