@@ -327,5 +327,6 @@ export async function generatePropertyPDF(
   doc.text(footLine, M, H - 14);
 
   const safeName = (p.title || "propiedad").replace(/[^\w-]+/g, "_").slice(0, 60);
-  doc.save("ALTUM-" + safeName + ".pdf");
+  const stamp = new Date().toISOString().slice(0, 10);
+  doc.save("ALTUM-" + safeName + "-" + stamp + ".pdf");
 }
