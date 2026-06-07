@@ -14,7 +14,8 @@ export interface Property {
   type: PropertyType;
   operation: Operation;
   zone: string;
-  price: number; // GTQ
+  price: number;
+  currency?: "GTQ" | "USD";
   beds: number;
   baths: number;
   area: number; // m2
