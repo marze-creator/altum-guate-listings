@@ -3,8 +3,16 @@
 // Triggered by Supabase Database Webhooks (INSERT on inquiries, property_submissions, valuations).
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const WEBHOOK_SECRET = "3d92e1cfe87de0fd4ced69f8efaef6611486ba6e93b8d928";
 const NOTIFY_TO = "marcelo@altumgroup.com.gt";
 const NOTIFY_FROM = "Altum Group <admin@altumgroup.com.gt>";
+
+function timingSafeEqualStr(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -85,16 +93,24 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    // Verify webhook secret (constant-time compare) — blocks anonymous spam
+    const incomingSecret = req.headers.get("x-webhook-secret") ?? "";
+    if (!timingSafeEqualStr(incomingSecret, WEBHOOK_SECRET)) {
+      console.warn("Rejected webhook: invalid or missing secret");
+      return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+    }
+
     if (!RESEND_API_KEY) {
       console.error("Missing RESEND_API_KEY");
-      return new Response(JSON.stringify({ error: "Missing RESEND_API_KEY" }), {
+      return new Response(JSON.stringify({ error: "Internal error" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const payload = (await req.json()) as WebhookPayload;
-    console.log("Webhook payload:", JSON.stringify(payload));
+
+
 
     if (payload.type !== "INSERT" || !payload.record) {
       return new Response(JSON.stringify({ ok: true, skipped: true }), {
