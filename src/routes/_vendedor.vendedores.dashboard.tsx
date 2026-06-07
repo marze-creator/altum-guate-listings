@@ -16,6 +16,7 @@ interface Prop {
   id: string;
   title: string;
   price: number;
+  currency: string | null;
   zone: string;
   status: string;
   operation: string;
@@ -44,7 +45,7 @@ function Dashboard() {
     setLoading(true);
     const { data, error } = await supabase
       .from("properties")
-      .select("id,title,price,zone,status,operation,views,cover_image")
+      .select("id,title,price,currency,zone,status,operation,views,cover_image")
       .eq("owner_id", user!.id)
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
@@ -91,9 +92,20 @@ function Dashboard() {
     load();
   }
 
+  const published = props.filter((p) => p.status === "published");
+  const sale = published.filter((p) => p.operation === "venta");
+  const rent = published.filter((p) => p.operation === "renta");
+  const sum = (arr: Prop[], curr: "GTQ" | "USD") =>
+    arr.filter((p) => (p.currency ?? "GTQ") === curr).reduce((s, p) => s + Number(p.price || 0), 0);
+  const fmt = (n: number, c: "GTQ" | "USD") =>
+    new Intl.NumberFormat("es-GT", { style: "currency", currency: c, maximumFractionDigits: 0 }).format(n);
+  const potentialSaleGTQ = sum(sale, "GTQ");
+  const potentialSaleUSD = sum(sale, "USD");
+  const potentialRentGTQ = sum(rent, "GTQ");
+  const potentialRentUSD = sum(rent, "USD");
   const stats = {
     total: props.length,
-    published: props.filter((p) => p.status === "published").length,
+    published: published.length,
     pending: props.filter((p) => p.status === "pending" || p.status === "draft").length,
     views: props.reduce((s, p) => s + p.views, 0),
   };
