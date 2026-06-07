@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Check, Send, ShieldCheck, Camera, ClipboardList } from "lucide-react";
 import { z } from "zod";
-import { ZONES, PROPERTY_TYPES } from "@/lib/properties";
+import { PROPERTY_TYPES } from "@/lib/properties";
+import { UBICACIONES_PREDEFINIDAS, DEPARTAMENTOS } from "@/lib/locations";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -45,7 +46,9 @@ function PublicaPage() {
     contact_phone: "",
     property_type: "Casa",
     operation: "venta" as "venta" | "renta",
+    department: "Guatemala",
     zone: "",
+    otherZone: "",
     address: "",
     bedrooms: "",
     bathrooms: "",
@@ -57,7 +60,8 @@ function PublicaPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const parsed = schema.safeParse(form);
+    const finalZone = form.zone === "__otra__" ? form.otherZone.trim() : form.zone;
+    const parsed = schema.safeParse({ ...form, zone: finalZone });
     if (!parsed.success) {
       toast.error(parsed.error.errors[0]?.message || "Revisa los datos");
       return;
@@ -71,7 +75,7 @@ function PublicaPage() {
         contact_phone: parsed.data.contact_phone || null,
         property_type: parsed.data.property_type,
         operation: parsed.data.operation,
-        zone: parsed.data.zone,
+        zone: finalZone + (form.department ? " — " + form.department : ""),
         address: parsed.data.address || null,
         bedrooms: form.bedrooms ? Number(form.bedrooms) : null,
         bathrooms: form.bathrooms ? Number(form.bathrooms) : null,
@@ -166,7 +170,11 @@ function PublicaPage() {
               <div className="grid sm:grid-cols-2 gap-3">
                 <Select label="Tipo *" value={form.property_type} onChange={(v) => set("property_type", v)} options={PROPERTY_TYPES} />
                 <Select label="Operación *" value={form.operation} onChange={(v) => set("operation", v as "venta" | "renta")} options={["venta", "renta"]} />
-                <Select label="Zona *" value={form.zone} onChange={(v) => set("zone", v)} options={["", ...ZONES]} placeholder="Selecciona zona" />
+                <Select label="Departamento *" value={form.department} onChange={(v) => set("department", v)} options={DEPARTAMENTOS} />
+                <Select label="Zona / Municipio *" value={form.zone} onChange={(v) => set("zone", v)} options={["", ...UBICACIONES_PREDEFINIDAS, "__otra__"]} placeholder="Selecciona ubicación" />
+                {form.zone === "__otra__" && (
+                  <Input label="Otra ubicación *" value={form.otherZone} onChange={(v) => set("otherZone", v)} maxLength={120} />
+                )}
                 <Input label="Dirección o referencia" value={form.address} onChange={(v) => set("address", v)} maxLength={240} />
                 <Input label="Habitaciones" type="number" value={form.bedrooms} onChange={(v) => set("bedrooms", v)} />
                 <Input label="Baños" type="number" value={form.bathrooms} onChange={(v) => set("bathrooms", v)} />
