@@ -41,6 +41,7 @@ function EditProperty() {
         description: data.description ?? "",
         price: String(data.price ?? ""),
         currency: (data.currency === "USD" ? "USD" : "GTQ"),
+        operation: data.operation ?? "venta",
         type: TYPE_REVERSE[data.type] ?? "Casa",
         zone: data.zone ?? "Zona 10",
         city: data.city ?? "Guatemala",
