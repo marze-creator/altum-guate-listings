@@ -26,7 +26,7 @@ function EditProperty() {
   const [existingImages, setExistingImages] = useState<{ id: string; url: string }[]>([]);
   const [otra, setOtra] = useState(false);
   const [f, setF] = useState({
-    title: "", description: "", price: "", operation: "venta", type: "Casa",
+    title: "", description: "", price: "", currency: "GTQ" as "GTQ" | "USD", operation: "venta", type: "Casa",
     zone: "Zona 10", city: "Guatemala", address: "", bedrooms: "0", bathrooms: "0",
     area_m2: "0", parking: "0", year_built: "", features: "", status: "draft",
     latitude: 14.6349, longitude: -90.5069,
@@ -40,7 +40,7 @@ function EditProperty() {
         title: data.title ?? "",
         description: data.description ?? "",
         price: String(data.price ?? ""),
-        operation: data.operation ?? "venta",
+        currency: (data.currency === "USD" ? "USD" : "GTQ"),
         type: TYPE_REVERSE[data.type] ?? "Casa",
         zone: data.zone ?? "Zona 10",
         city: data.city ?? "Guatemala",
