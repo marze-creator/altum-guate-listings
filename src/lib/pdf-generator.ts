@@ -1,7 +1,10 @@
 // Client-only PDF generator for ALTUM property brochures.
 import { jsPDF } from "jspdf";
 import type { Property } from "@/lib/properties";
-import { buildMortgageMatrix, fmtGTQ, TERMS_YEARS } from "@/lib/mortgage";
+import { buildMortgageMatrix, TERMS_YEARS } from "@/lib/mortgage";
+
+const fmtMoney = (n: number, currency: "GTQ" | "USD" = "GTQ") =>
+  new Intl.NumberFormat("es-GT", { style: "currency", currency, maximumFractionDigits: 0 }).format(n);
 
 const NAVY = [28, 33, 53] as const;        // #1C2135
 const GOLD = [201, 169, 110] as const;      // #C9A96E
