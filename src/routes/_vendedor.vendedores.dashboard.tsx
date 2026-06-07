@@ -205,7 +205,31 @@ function Dashboard() {
               </div>
             </div>
           )}
+      </div>
+
+      {published.length > 0 && (
+        <div className="mb-8 grid md:grid-cols-2 gap-4">
+          <div className="bg-card border border-border rounded-sm p-5">
+            <p className="text-xs uppercase tracking-wider text-secondary font-semibold">Potencial de venta</p>
+            <p className="text-xs text-muted-foreground mt-1">{sale.length} propiedade(s) publicadas en venta</p>
+            <div className="mt-3 space-y-1">
+              {potentialSaleGTQ > 0 && <p className="font-display text-2xl text-primary">{fmt(potentialSaleGTQ, "GTQ")}</p>}
+              {potentialSaleUSD > 0 && <p className="font-display text-2xl text-primary">{fmt(potentialSaleUSD, "USD")}</p>}
+              {potentialSaleGTQ === 0 && potentialSaleUSD === 0 && <p className="text-muted-foreground text-sm">—</p>}
+            </div>
+          </div>
+          <div className="bg-card border border-border rounded-sm p-5">
+            <p className="text-xs uppercase tracking-wider text-secondary font-semibold">Ingreso mensual potencial (renta)</p>
+            <p className="text-xs text-muted-foreground mt-1">{rent.length} propiedade(s) publicadas en renta</p>
+            <div className="mt-3 space-y-1">
+              {potentialRentGTQ > 0 && <p className="font-display text-2xl text-primary">{fmt(potentialRentGTQ, "GTQ")}<span className="text-xs text-muted-foreground">/mes</span></p>}
+              {potentialRentUSD > 0 && <p className="font-display text-2xl text-primary">{fmt(potentialRentUSD, "USD")}<span className="text-xs text-muted-foreground">/mes</span></p>}
+              {potentialRentGTQ === 0 && potentialRentUSD === 0 && <p className="text-muted-foreground text-sm">—</p>}
+            </div>
+          </div>
         </div>
+      )}
+
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -256,7 +280,7 @@ function Dashboard() {
                     </div>
                   </td>
                   <td className="p-4 hidden md:table-cell">{p.zone}</td>
-                  <td className="p-4 font-semibold">Q{p.price.toLocaleString()}</td>
+                  <td className="p-4 font-semibold">{(p.currency === "USD" ? "$" : "Q")}{p.price.toLocaleString()}</td>
                   <td className="p-4">
                     <span className={statusBadgeClass(p.status)}>
                       {p.status}
