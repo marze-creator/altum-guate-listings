@@ -171,7 +171,19 @@ function PublicaPage() {
                 <Select label="Tipo *" value={form.property_type} onChange={(v) => set("property_type", v)} options={PROPERTY_TYPES} />
                 <Select label="Operación *" value={form.operation} onChange={(v) => set("operation", v as "venta" | "renta")} options={["venta", "renta"]} />
                 <Select label="Departamento *" value={form.department} onChange={(v) => set("department", v)} options={DEPARTAMENTOS} />
-                <Select label="Zona / Municipio *" value={form.zone} onChange={(v) => set("zone", v)} options={["", ...UBICACIONES_PREDEFINIDAS, "__otra__"]} placeholder="Selecciona ubicación" />
+                <label className="block">
+                  <span className="text-xs uppercase tracking-wider text-muted-foreground">Zona / Municipio *</span>
+                  <select value={form.zone} onChange={(e) => set("zone", e.target.value)} className="mt-1 w-full h-11 px-3 border border-border rounded-sm bg-background">
+                    <option value="">Selecciona ubicación</option>
+                    <optgroup label="Ciudad de Guatemala">
+                      {UBICACIONES_PREDEFINIDAS.slice(0, 25).map((z) => <option key={z}>{z}</option>)}
+                    </optgroup>
+                    <optgroup label="Municipios / Frecuentes">
+                      {UBICACIONES_PREDEFINIDAS.slice(25).map((z) => <option key={z}>{z}</option>)}
+                    </optgroup>
+                    <option value="__otra__">Otra ubicación…</option>
+                  </select>
+                </label>
                 {form.zone === "__otra__" && (
                   <Input label="Otra ubicación *" value={form.otherZone} onChange={(v) => set("otherZone", v)} maxLength={120} />
                 )}
