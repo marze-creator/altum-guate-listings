@@ -135,7 +135,8 @@ export async function generatePropertyPDF(
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(17);
-      const priceLabel = fmtGTQ(p.price) + (p.operation === "renta" ? "/mes" : "");
+      const curr = (p.currency === "USD" ? "USD" : "GTQ") as "GTQ" | "USD";
+      const priceLabel = fmtMoney(p.price, curr) + (p.operation === "renta" ? "/mes" : "");
       doc.text(priceLabel, M + 30, y + imgH - 16 - 14);
       y += imgH + 18;
     }
@@ -255,8 +256,8 @@ export async function generatePropertyPDF(
   matrix.forEach((row, ri) => {
     const ry = y + ri * 22 + 14;
     const pct = (row.downPct * 100).toFixed(0) + "%";
-    const monthly = row.terms.map((t) => fmtGTQ(t.monthly) + "/m");
-    const cells = [pct, fmtGTQ(row.down), fmtGTQ(row.financed)].concat(monthly);
+    const monthly = row.terms.map((t) => fmtMoney(t.monthly, "GTQ") + "/m");
+    const cells = [pct, fmtMoney(row.down, "GTQ"), fmtMoney(row.financed, "GTQ")].concat(monthly);
     cells.forEach((c, i) => {
       doc.setFont("helvetica", i === 0 ? "bold" : "normal");
       doc.text(c, M + i * colWp + colWp / 2, ry, { align: "center" });
@@ -264,19 +265,25 @@ export async function generatePropertyPDF(
   });
   y += matrix.length * 22 + 14;
 
-  // Map (static)
+  // Map (static OSM + Google Maps share link)
   if (p.lat && p.lng) {
-    if (y + 140 > H - 80) { doc.addPage(); y = M; }
+    if (y + 160 > H - 80) { doc.addPage(); y = M; }
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.setTextColor(...NAVY);
     doc.text("Ubicación", M, y);
     y += 12;
-    const staticUrl = "https://staticmap.openstreetmap.de/staticmap.php?center=" + p.lat + "," + p.lng + "&zoom=15&size=800x300&markers=" + p.lat + "," + p.lng + ",red-pushpin";
-    const md = await urlToCover(staticUrl, W - 2 * M, 140);
+    const mapW = W - 2 * M;
+    const mapH = 150;
+    // Use OSM static map (HTTPS, supports CORS)
+    const staticUrl = "https://staticmap.openstreetmap.de/staticmap.php?center=" + p.lat + "," + p.lng + "&zoom=16&size=900x340&markers=" + p.lat + "," + p.lng + ",red-pushpin";
+    const md = await urlToCover(staticUrl, mapW, mapH);
     if (md) {
-      try { doc.addImage(md, "JPEG", M, y, W - 2 * M, 140); } catch {}
-      y += 150;
+      try { doc.addImage(md, "JPEG", M, y, mapW, mapH); } catch {}
+      doc.setDrawColor(...GOLD);
+      doc.setLineWidth(0.4);
+      doc.rect(M, y, mapW, mapH);
+      y += mapH + 6;
     } else {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
@@ -284,6 +291,13 @@ export async function generatePropertyPDF(
       doc.text("Lat " + p.lat + ", Lng " + p.lng, M, y + 10);
       y += 20;
     }
+    // Google Maps share link
+    const gmaps = "https://www.google.com/maps?q=" + p.lat + "," + p.lng;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...NAVY);
+    doc.textWithLink("📍 Ver ubicación en Google Maps", M, y + 10, { url: gmaps });
+    y += 20;
   }
 
   // CTA block
