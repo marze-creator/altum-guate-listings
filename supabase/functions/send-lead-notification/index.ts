@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("Handler error:", err);
-    return new Response(JSON.stringify({ error: String(err) }), {
+    return new Response(JSON.stringify({ error: "Internal error" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
