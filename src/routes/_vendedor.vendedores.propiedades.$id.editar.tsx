@@ -81,6 +81,7 @@ function EditProperty() {
         title: f.title,
         description: f.description || null,
         price: Number(f.price),
+        currency: f.currency,
         operation: f.operation as any,
         type: (TYPE_MAP[f.type] || "casa") as any,
         zone: f.zone,
@@ -175,8 +176,14 @@ function EditProperty() {
             {otra && <button type="button" onClick={() => { setOtra(false); setF({ ...f, zone: "Zona 10" }); }} className="text-xs text-secondary mt-1">← Volver al listado</button>}
           </Field>
 
-          <Field label="Precio (Q) *">
-            <input type="number" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value })} className="input-altum" />
+          <Field label={"Precio (" + f.currency + ") *"}>
+            <div className="flex gap-2">
+              <select value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value as "GTQ" | "USD" })} className="input-altum w-24">
+                <option value="GTQ">Q</option>
+                <option value="USD">$</option>
+              </select>
+              <input type="number" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value })} className="input-altum flex-1" />
+            </div>
           </Field>
           <Field label="Estado *">
             <select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} className="input-altum">
