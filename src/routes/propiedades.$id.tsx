@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Bath, BedDouble, Check, Download, MapPin, Maximize, Star } from "lucide-react";
-import { formatGTQ, type Property } from "@/lib/properties";
+import { formatMoney, type Property } from "@/lib/properties";
 import { PropertyCard } from "@/components/property-card";
 import { fetchPropertyById, fetchPublishedProperties } from "@/lib/properties-db";
 import { InquiryForm } from "@/components/inquiry-form";
@@ -96,7 +96,7 @@ function PropertyDetail() {
             <h1 className="font-display text-3xl text-primary">{p.title}</h1>
             <p className="mt-2 flex items-center gap-1 text-muted-foreground"><MapPin size={16} className="text-secondary" /> {p.zone}, Guatemala</p>
             <p className="mt-5 text-4xl price-text">
-              {formatGTQ(p.price)}
+              {formatMoney(p.price, p.currency)}
               {p.operation === "renta" && <span className="text-base text-muted-foreground font-normal">/mes</span>}
             </p>
           </div>
