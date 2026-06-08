@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Bath, BedDouble, MapPin, Maximize } from "lucide-react";
-import { type Property, formatGTQ } from "@/lib/properties";
+import { type Property, formatMoney } from "@/lib/properties";
 
 export function PropertyCard({ p }: { p: Property }) {
   return (
@@ -25,7 +25,7 @@ export function PropertyCard({ p }: { p: Property }) {
       </Link>
       <div className="p-5">
         <p className="text-2xl price-text">
-          {formatGTQ(p.price)}
+          {formatMoney(p.price, p.currency)}
           {p.operation === "renta" && <span className="text-xs text-muted-foreground font-normal">/mes</span>}
         </p>
         <h3 className="mt-1 font-display font-semibold text-base text-primary line-clamp-1">{p.title}</h3>
