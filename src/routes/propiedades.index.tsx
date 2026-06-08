@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Grid3x3, List, X } from "lucide-react";
-import { ZONES, PROPERTY_TYPES, formatGTQ, type Operation, type Property } from "@/lib/properties";
+import { ZONES, PROPERTY_TYPES, formatGTQ, formatMoney, type Operation, type Property } from "@/lib/properties";
 import { PropertyCard } from "@/components/property-card";
 import { fetchPublishedProperties } from "@/lib/properties-db";
 
@@ -156,7 +156,7 @@ function PropertiesPage() {
                 <Link key={p.id} to="/propiedades/$id" params={{ id: p.id }} className="flex gap-4 bg-card border border-border rounded-sm overflow-hidden hover:shadow-card transition">
                   <img src={p.image} alt={p.title} loading="lazy" width={400} height={300} className="w-48 h-36 object-cover" />
                   <div className="flex-1 p-4">
-                    <p className="text-xl price-text">{formatGTQ(p.price)}{p.operation === "renta" && <span className="text-xs text-muted-foreground font-normal">/mes</span>}</p>
+                    <p className="text-xl price-text">{formatMoney(p.price, p.currency)}{p.operation === "renta" && <span className="text-xs text-muted-foreground font-normal">/mes</span>}</p>
                     <h3 className="font-display font-semibold text-primary">{p.title}</h3>
                     <p className="text-sm text-muted-foreground">{p.zone}</p>
                     <p className="text-xs text-primary/70 mt-2">{p.beds > 0 && `${p.beds} hab · `}{p.baths > 0 && `${p.baths} baños · `}{p.area} m²</p>
