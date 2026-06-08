@@ -1,6 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Property, PropertyType } from "@/lib/properties";
-import prop1 from "@/assets/prop-1.jpg";
+
+const PROPERTY_PLACEHOLDER =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900"><rect width="1200" height="900" fill="#f4efe5"/><path d="M260 635h680V365L600 195 260 365z" fill="#1c2135" opacity=".12"/><path d="M360 635V405l240-120 240 120v230" fill="none" stroke="#c9a96e" stroke-width="28"/><path d="M510 635V485h180v150" fill="#1c2135" opacity=".18"/><text x="600" y="735" text-anchor="middle" font-family="Arial" font-size="44" fill="#1c2135" opacity=".75">ALTUM GROUP</text></svg>`,
+  );
 
 const TYPE_LABEL: Record<string, PropertyType> = {
   casa: "Casa",
@@ -38,7 +43,7 @@ export interface DBProperty {
 }
 
 export function dbToUI(p: DBProperty, images?: string[]): Property & { images: string[]; status: string; featured: boolean; parking: number; features: string[] } {
-  const imgs = images && images.length ? images : p.cover_image ? [p.cover_image] : [prop1];
+  const imgs = images && images.length ? images : p.cover_image ? [p.cover_image] : [PROPERTY_PLACEHOLDER];
   const feats = p.features ?? [];
   return {
     id: p.id,
