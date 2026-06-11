@@ -101,6 +101,7 @@ export async function generatePropertyPDF(
 
   doc.setTextColor(...NAVY);
   let y = 95;
+  const curr = (p.currency === "USD" ? "USD" : "GTQ") as "GTQ" | "USD";
 
   // Title + zone
   doc.setFont("helvetica", "bold");
@@ -135,7 +136,6 @@ export async function generatePropertyPDF(
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(17);
-      const curr = (p.currency === "USD" ? "USD" : "GTQ") as "GTQ" | "USD";
       const priceLabel = fmtMoney(p.price, curr) + (p.operation === "renta" ? "/mes" : "");
       doc.text(priceLabel, M + 30, y + imgH - 16 - 14);
       y += imgH + 18;
@@ -222,82 +222,98 @@ export async function generatePropertyPDF(
       const cx = M + (i % cols) * colW;
       const cy = y + Math.floor(i / cols) * 16;
       doc.setTextColor(...GOLD);
-      doc.text("✓", cx, cy);
+      doc.text("•", cx, cy);
       doc.setTextColor(60, 60, 60);
       doc.text(String(f), cx + 12, cy);
     });
     y += Math.ceil(feats.length / cols) * 16 + 12;
   }
 
-  // Cotizacion section
-  if (y + 160 > H - 80) { doc.addPage(); y = M; }
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.setTextColor(...NAVY);
-  doc.text("Cotización referencial (8% anual)", M, y);
-  y += 14;
-  const matrix = buildMortgageMatrix(p.price, 0.08);
-  const termHeaders = TERMS_YEARS.map((t) => t + " años");
-  const headers = ["Enganche", "Monto", "A financiar"].concat(termHeaders);
-  const colCount = headers.length;
-  const tableW = W - 2 * M;
-  const colWp = tableW / colCount;
-  doc.setFillColor(...NAVY);
-  doc.rect(M, y, tableW, 22, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  headers.forEach((h, i) => doc.text(h, M + i * colWp + colWp / 2, y + 14, { align: "center" }));
-  y += 22;
-  doc.setFillColor(...CREAM);
-  doc.rect(M, y, tableW, matrix.length * 22, "F");
-  doc.setTextColor(...NAVY);
-  doc.setFont("helvetica", "normal");
-  matrix.forEach((row, ri) => {
-    const ry = y + ri * 22 + 14;
-    const pct = (row.downPct * 100).toFixed(0) + "%";
-    const monthly = row.terms.map((t) => fmtMoney(t.monthly, "GTQ") + "/m");
-    const cells = [pct, fmtMoney(row.down, "GTQ"), fmtMoney(row.financed, "GTQ")].concat(monthly);
-    cells.forEach((c, i) => {
-      doc.setFont("helvetica", i === 0 ? "bold" : "normal");
-      doc.text(c, M + i * colWp + colWp / 2, ry, { align: "center" });
-    });
-  });
-  y += matrix.length * 22 + 14;
-
-  // Map (static OSM + Google Maps share link)
-  if (p.lat && p.lng) {
+  // Cotizacion section — solo para VENTA (no aplica a rentas)
+  if (p.operation === "venta") {
     if (y + 160 > H - 80) { doc.addPage(); y = M; }
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.setTextColor(...NAVY);
-    doc.text("Ubicación", M, y);
-    y += 12;
-    const mapW = W - 2 * M;
-    const mapH = 150;
-    // Use OSM static map (HTTPS, supports CORS)
-    const staticUrl = "https://staticmap.openstreetmap.de/staticmap.php?center=" + p.lat + "," + p.lng + "&zoom=16&size=900x340&markers=" + p.lat + "," + p.lng + ",red-pushpin";
-    const md = await urlToCover(staticUrl, mapW, mapH);
-    if (md) {
-      try { doc.addImage(md, "JPEG", M, y, mapW, mapH); } catch {}
-      doc.setDrawColor(...GOLD);
-      doc.setLineWidth(0.4);
-      doc.rect(M, y, mapW, mapH);
-      y += mapH + 6;
-    } else {
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.setTextColor(60, 60, 60);
-      doc.text("Lat " + p.lat + ", Lng " + p.lng, M, y + 10);
-      y += 20;
-    }
-    // Google Maps share link
-    const gmaps = "https://www.google.com/maps?q=" + p.lat + "," + p.lng;
+    doc.text("Cotización referencial (8% anual)", M, y);
+    y += 14;
+    const matrix = buildMortgageMatrix(p.price, 0.08);
+    const termHeaders = TERMS_YEARS.map((t) => t + " años");
+    const headers = ["Enganche", "Monto", "A financiar"].concat(termHeaders);
+    const colCount = headers.length;
+    const tableW = W - 2 * M;
+    const colWp = tableW / colCount;
+    doc.setFillColor(...NAVY);
+    doc.rect(M, y, tableW, 22, "F");
+    doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
+    headers.forEach((h, i) => doc.text(h, M + i * colWp + colWp / 2, y + 14, { align: "center" }));
+    y += 22;
+    doc.setFillColor(...CREAM);
+    doc.rect(M, y, tableW, matrix.length * 22, "F");
     doc.setTextColor(...NAVY);
-    doc.textWithLink("📍 Ver ubicación en Google Maps", M, y + 10, { url: gmaps });
-    y += 20;
+    doc.setFont("helvetica", "normal");
+    matrix.forEach((row, ri) => {
+      const ry = y + ri * 22 + 14;
+      const pct = (row.downPct * 100).toFixed(0) + "%";
+      const monthly = row.terms.map((t) => fmtMoney(t.monthly, curr) + "/m");
+      const cells = [pct, fmtMoney(row.down, curr), fmtMoney(row.financed, curr)].concat(monthly);
+      cells.forEach((c, i) => {
+        doc.setFont("helvetica", i === 0 ? "bold" : "normal");
+        doc.text(c, M + i * colWp + colWp / 2, ry, { align: "center" });
+      });
+    });
+    y += matrix.length * 22 + 8;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(130, 130, 130);
+    doc.text("Cálculo referencial. Sujeto a aprobación bancaria. No constituye oferta de crédito.", M, y);
+    y += 14;
+  }
+
+  // Ubicación — bloque elegante con enlace a Google Maps
+  // (el servicio de mapas estáticos gratuito dejó de funcionar; un botón
+  //  enlazado es más confiable y igual de útil para el cliente)
+  if (p.lat && p.lng) {
+    if (y + 80 > H - 80) { doc.addPage(); y = M; }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(...NAVY);
+    doc.text("Ubicación", M, y);
+    y += 10;
+    const boxH = 54;
+    doc.setFillColor(...CREAM);
+    doc.rect(M, y, W - 2 * M, boxH, "F");
+    doc.setDrawColor(...GOLD);
+    doc.setLineWidth(0.5);
+    doc.rect(M, y, W - 2 * M, boxH);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...NAVY);
+    doc.text(p.zone + ", Ciudad de Guatemala", M + 16, y + 22);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(130, 130, 130);
+    doc.text("Ubicación exacta compartida por tu asesor al coordinar visita", M + 16, y + 38);
+    // Botón "Ver en Google Maps"
+    const gmaps = "https://www.google.com/maps?q=" + p.lat + "," + p.lng;
+    const btnW = 150;
+    const btnH = 30;
+    const btnX = W - M - btnW - 12;
+    const btnY = y + (boxH - btnH) / 2;
+    doc.setFillColor(...NAVY);
+    doc.rect(btnX, btnY, btnW, btnH, "F");
+    doc.setFillColor(...GOLD);
+    doc.rect(btnX, btnY, 3, btnH, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.textWithLink("Ver en Google Maps", btnX + btnW / 2 + 2, btnY + 19, {
+      url: gmaps,
+      align: "center",
+    });
+    y += boxH + 16;
   }
 
   // CTA block
