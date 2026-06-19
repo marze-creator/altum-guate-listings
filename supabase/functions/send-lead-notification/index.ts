@@ -3,7 +3,7 @@
 // Triggered by Supabase Database Webhooks (INSERT on inquiries, property_submissions, valuations).
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const WEBHOOK_SECRET = "3d92e1cfe87de0fd4ced69f8efaef6611486ba6e93b8d928";
+const WEBHOOK_SECRET = Deno.env.get("WEBHOOK_SECRET") ?? "";
 const NOTIFY_TO = "marcelo@altumgroup.com.gt";
 const NOTIFY_FROM = "Altum Group <admin@altumgroup.com.gt>";
 
@@ -93,6 +93,14 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    if (!WEBHOOK_SECRET) {
+      console.error("Missing WEBHOOK_SECRET");
+      return new Response(JSON.stringify({ error: "Internal error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Verify webhook secret (constant-time compare) — blocks anonymous spam
     const incomingSecret = req.headers.get("x-webhook-secret") ?? "";
     if (!timingSafeEqualStr(incomingSecret, WEBHOOK_SECRET)) {
