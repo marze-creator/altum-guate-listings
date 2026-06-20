@@ -47,7 +47,7 @@ function NewProperty() {
     parking: "0",
     year_built: "",
     features: "",
-    status: "draft",
+    status: "pending" as "draft" | "pending",
     latitude: 14.6349,
     longitude: -90.5069,
   });
@@ -94,7 +94,7 @@ function NewProperty() {
           parking: Number(f.parking),
           year_built: f.year_built ? Number(f.year_built) : null,
           features: f.features.split(",").map((s) => s.trim()).filter(Boolean),
-          status: f.status as "draft" | "pending" | "published",
+          status: f.status as "draft" | "pending",
         })
         .select()
         .single();
@@ -138,7 +138,7 @@ function NewProperty() {
         }
       }
 
-      toast.success("¡Propiedad creada exitosamente!");
+      toast.success(f.status === "pending" ? "Propiedad enviada a revisión." : "Propiedad guardada como borrador.");
       nav({ to: "/vendedores/dashboard" });
     } catch (e: any) {
       toast.error(e.message || "Error al crear la propiedad");
@@ -160,7 +160,7 @@ function NewProperty() {
         <p className="text-xs uppercase tracking-widest text-secondary font-semibold">Portal Vendedor</p>
         <h1 className="font-display text-3xl text-primary">Nueva propiedad</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Completá los datos. Podés guardar como borrador y editarlo después.
+          Completá los datos. Podés guardar como borrador o enviarla a revisión del admin.
         </p>
       </div>
 
@@ -309,8 +309,7 @@ function NewProperty() {
               className="input-altum"
             >
               <option value="draft">Borrador (no se muestra)</option>
-              <option value="pending">Pendiente de revisión</option>
-              <option value="published">Publicada (visible al público)</option>
+              <option value="pending">Pendiente de revisión del admin</option>
             </select>
           </Field>
         </div>
@@ -405,7 +404,7 @@ function NewProperty() {
 
       <div className="mt-6 p-4 bg-muted border-l-4 border-secondary rounded-sm text-xs text-muted-foreground">
         <p className="font-semibold text-primary mb-1">💡 Tip:</p>
-        <p>Si seleccionás "Borrador", la propiedad NO se mostrará al público hasta que cambies su estado. Útil para empezar y completar más datos después.</p>
+        <p>Las propiedades nuevas no se publican directamente. Quedan como borrador o pendientes de revisión para que un admin de ALTUM las apruebe antes de mostrarlas al público.</p>
       </div>
     </div>
   );
