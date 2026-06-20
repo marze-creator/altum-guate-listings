@@ -2,8 +2,19 @@
   "name": "altum-guate-listings",
   "main": "dist/server/server.js",
   "compatibility_date": "2025-06-20",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat",
+    "nodejs_compat_populate_process_env"
+  ],
   "assets": {
     "directory": "dist/client"
+  },
+  "vars": {
+    "SUPABASE_URL": "https://xbiltqfxyedlqadofclt.supabase.co",
+    "VITE_SUPABASE_URL": "https://xbiltqfxyedlqadofclt.supabase.co",
+    "SUPABASE_PROJECT_ID": "xbiltqfxyedlqadofclt",
+    "VITE_SUPABASE_PROJECT_ID": "xbiltqfxyedlqadofclt",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_ocW0eeto0lAL-bM3_XIisQ_WuRDTEwt",
+    "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_ocW0eeto0lAL-bM3_XIisQ_WuRDTEwt"
   }
 }
