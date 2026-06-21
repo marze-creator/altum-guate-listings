@@ -14,7 +14,7 @@
     {
       "type": "ESModule",
       "globs": [
-        "assets/**/*.js"
+        "assets/**/*"
       ],
       "fallthrough": true
     }
