@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, Eye, LogOut, ShieldCheck, MailCheck, MailWarning, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, LogOut, ShieldCheck, MailCheck, MailWarning, Clock, CheckCircle2, XCircle, Columns3, CalendarDays, CircleDollarSign } from "lucide-react";
 
 export const Route = createFileRoute("/_vendedor/vendedores/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — ALTUM GROUP" }, { name: "robots", content: "noindex" }] }),
@@ -139,6 +139,24 @@ function Dashboard() {
             <LogOut size={16} /> Salir
           </button>
         </div>
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-4 mb-8">
+        <Link to="/vendedores/crm" className="bg-primary text-white rounded-sm p-5 hover:bg-primary/95 transition-colors">
+          <Columns3 className="text-secondary mb-3" size={24} />
+          <p className="font-display text-xl">CRM Kanban</p>
+          <p className="text-sm text-white/75 mt-1">Leads, etapas, visitas y negociación.</p>
+        </Link>
+        <Link to="/vendedores/agenda" className="bg-card border border-border rounded-sm p-5 hover:bg-muted/40 transition-colors">
+          <CalendarDays className="text-secondary mb-3" size={24} />
+          <p className="font-display text-xl text-primary">Agenda</p>
+          <p className="text-sm text-muted-foreground mt-1">Seguimientos, llamadas y visitas.</p>
+        </Link>
+        <Link to="/vendedores/comisiones" className="bg-card border border-border rounded-sm p-5 hover:bg-muted/40 transition-colors">
+          <CircleDollarSign className="text-secondary mb-3" size={24} />
+          <p className="font-display text-xl text-primary">Comisiones</p>
+          <p className="text-sm text-muted-foreground mt-1">Pipeline económico y comisión estimada.</p>
+        </Link>
       </div>
 
       <div className={emailBoxClass}>
