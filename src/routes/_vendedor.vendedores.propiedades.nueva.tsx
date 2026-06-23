@@ -48,6 +48,10 @@ function NewProperty() {
     year_built: "",
     features: "",
     status: "draft",
+    property_owner_name: "",
+    property_owner_phone: "",
+    property_owner_email: "",
+    internal_notes: "",
     latitude: 14.6349,
     longitude: -90.5069,
   });
@@ -73,10 +77,16 @@ function NewProperty() {
 
     setSaving(true);
     try {
-      const { data: newProp, error } = await supabase
+      const { data: newProp, error } = await (supabase as any)
         .from("properties")
         .insert({
           owner_id: user.id,
+          captured_by_user_id: user.id,
+          property_owner_name: f.property_owner_name.trim() || null,
+          property_owner_phone: f.property_owner_phone.trim() || null,
+          property_owner_email: f.property_owner_email.trim() || null,
+          internal_notes: f.internal_notes.trim() || null,
+          content_status: "pendiente",
           title: f.title,
           description: f.description || null,
           price: Number(f.price),
@@ -332,6 +342,28 @@ function NewProperty() {
             className="input-altum"
           />
         </Field>
+
+        <div className="grid md:grid-cols-3 gap-4 pt-4 border-t border-border">
+          <div className="md:col-span-3">
+            <p className="text-xs uppercase tracking-wider text-primary font-semibold">Datos internos de captación</p>
+            <p className="text-xs text-muted-foreground mt-1">Estos datos no se muestran al público. Sirven para CRM, seguimiento y comisiones.</p>
+          </div>
+          <Field label="Propietario">
+            <input value={f.property_owner_name} onChange={(e) => setF({ ...f, property_owner_name: e.target.value })} placeholder="Nombre propietario" className="input-altum" />
+          </Field>
+          <Field label="Teléfono propietario">
+            <input value={f.property_owner_phone} onChange={(e) => setF({ ...f, property_owner_phone: e.target.value })} placeholder="WhatsApp / teléfono" className="input-altum" />
+          </Field>
+          <Field label="Correo propietario">
+            <input value={f.property_owner_email} onChange={(e) => setF({ ...f, property_owner_email: e.target.value })} placeholder="correo@ejemplo.com" className="input-altum" />
+          </Field>
+          <div className="md:col-span-2 text-xs text-muted-foreground bg-muted/40 border border-border rounded-sm p-3">
+            La comisión se calcula sola al cerrar la oportunidad: venta 5% (30% ALTUM / 70% asesor, o 35% + 35% si la captó uno y la cerró otro). Renta = una mensualidad, con la misma división.
+          </div>
+          <Field label="Notas internas" hint="Llaves, negociación, condiciones, urgencia, comisión compartida, etc.">
+            <textarea value={f.internal_notes} onChange={(e) => setF({ ...f, internal_notes: e.target.value })} placeholder="Notas privadas para ALTUM" className="input-altum min-h-[90px]" />
+          </Field>
+        </div>
 
         <div>
           <p className="block text-xs uppercase tracking-wider text-primary font-semibold mb-2">Ubicación exacta en el mapa</p>
