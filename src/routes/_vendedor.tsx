@@ -1,6 +1,7 @@
-import { createFileRoute, Outlet, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, Navigate, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { LayoutDashboard, Columns3, CalendarDays, CircleDollarSign, LogOut } from "lucide-react";
 
 export const Route = createFileRoute("/_vendedor")({
   component: VendedorLayout,
@@ -32,5 +33,28 @@ function VendedorLayout() {
       </div>
     );
   }
-  return <Outlet />;
+  return (
+    <div>
+      <nav className="sticky top-0 z-50 bg-card border-b border-border">
+        <div className="container-altum flex items-center gap-1 h-14 overflow-x-auto">
+          <Link to="/vendedores/dashboard" activeProps={{ className: "text-primary bg-muted" }} className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted whitespace-nowrap shrink-0">
+            <LayoutDashboard size={16} /> Dashboard
+          </Link>
+          <Link to="/vendedores/crm" activeProps={{ className: "text-primary bg-muted" }} className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted whitespace-nowrap shrink-0">
+            <Columns3 size={16} /> CRM
+          </Link>
+          <Link to="/vendedores/agenda" activeProps={{ className: "text-primary bg-muted" }} className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted whitespace-nowrap shrink-0">
+            <CalendarDays size={16} /> Agenda
+          </Link>
+          <Link to="/vendedores/comisiones" activeProps={{ className: "text-primary bg-muted" }} className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted whitespace-nowrap shrink-0">
+            <CircleDollarSign size={16} /> Comisiones
+          </Link>
+          <button onClick={async () => { await signOut(); window.location.href = "/vendedores/login"; }} className="ml-auto inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary px-3 py-1.5 shrink-0">
+            <LogOut size={16} /> Salir
+          </button>
+        </div>
+      </nav>
+      <Outlet />
+    </div>
+  );
 }
