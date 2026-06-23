@@ -29,34 +29,40 @@ function EditProperty() {
     title: "", description: "", price: "", currency: "GTQ" as "GTQ" | "USD", operation: "venta", type: "Casa",
     zone: "Zona 10", city: "Guatemala", address: "", bedrooms: "0", bathrooms: "0",
     area_m2: "0", parking: "0", year_built: "", features: "", status: "draft",
+    property_owner_name: "", property_owner_phone: "", property_owner_email: "", internal_notes: "",
     latitude: 14.6349, longitude: -90.5069,
   });
 
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase.from("properties").select("*, property_images(id,url,position)").eq("id", id).maybeSingle();
+      const { data, error } = await (supabase as any).from("properties").select("*, property_images(id,url,position)").eq("id", id).maybeSingle();
       if (error || !data) { toast.error("No se pudo cargar la propiedad"); nav({ to: "/vendedores/dashboard" }); return; }
+      const row = data as any;
       setF({
-        title: data.title ?? "",
-        description: data.description ?? "",
-        price: String(data.price ?? ""),
-        currency: (data.currency === "USD" ? "USD" : "GTQ"),
-        operation: data.operation ?? "venta",
-        type: TYPE_REVERSE[data.type] ?? "Casa",
-        zone: data.zone ?? "Zona 10",
-        city: data.city ?? "Guatemala",
-        address: data.address ?? "",
-        bedrooms: String(data.bedrooms ?? 0),
-        bathrooms: String(data.bathrooms ?? 0),
-        area_m2: String(data.area_m2 ?? 0),
-        parking: String(data.parking ?? 0),
-        year_built: data.year_built ? String(data.year_built) : "",
-        features: Array.isArray(data.features) ? data.features.join(", ") : "",
-        status: data.status ?? "draft",
-        latitude: Number(data.latitude ?? 14.6349),
-        longitude: Number(data.longitude ?? -90.5069),
+        title: row.title ?? "",
+        description: row.description ?? "",
+        price: String(row.price ?? ""),
+        currency: (row.currency === "USD" ? "USD" : "GTQ"),
+        operation: row.operation ?? "venta",
+        type: TYPE_REVERSE[row.type] ?? "Casa",
+        zone: row.zone ?? "Zona 10",
+        city: row.city ?? "Guatemala",
+        address: row.address ?? "",
+        bedrooms: String(row.bedrooms ?? 0),
+        bathrooms: String(row.bathrooms ?? 0),
+        area_m2: String(row.area_m2 ?? 0),
+        parking: String(row.parking ?? 0),
+        year_built: row.year_built ? String(row.year_built) : "",
+        features: Array.isArray(row.features) ? row.features.join(", ") : "",
+        status: row.status ?? "draft",
+        property_owner_name: row.property_owner_name ?? "",
+        property_owner_phone: row.property_owner_phone ?? "",
+        property_owner_email: row.property_owner_email ?? "",
+        internal_notes: row.internal_notes ?? "",
+        latitude: Number(row.latitude ?? 14.6349),
+        longitude: Number(row.longitude ?? -90.5069),
       });
-      setOtra(!UBICACIONES_PREDEFINIDAS.includes(data.zone));
+      setOtra(!UBICACIONES_PREDEFINIDAS.includes(row.zone));
       const imgs = (data.property_images ?? []).sort((a: any, b: any) => a.position - b.position);
       setExistingImages(imgs.map((i: any) => ({ id: i.id, url: i.url })));
       setLoading(false);
@@ -77,7 +83,7 @@ function EditProperty() {
     if (!f.price || Number(f.price) <= 0) return toast.error("Precio inválido");
     setSaving(true);
     try {
-      const { error } = await supabase.from("properties").update({
+      const { error } = await (supabase as any).from("properties").update({
         title: f.title,
         description: f.description || null,
         price: Number(f.price),
@@ -94,6 +100,10 @@ function EditProperty() {
         year_built: f.year_built ? Number(f.year_built) : null,
         features: f.features.split(",").map((s) => s.trim()).filter(Boolean),
         status: f.status as any,
+        property_owner_name: f.property_owner_name.trim() || null,
+        property_owner_phone: f.property_owner_phone.trim() || null,
+        property_owner_email: f.property_owner_email.trim() || null,
+        internal_notes: f.internal_notes.trim() || null,
         latitude: f.latitude,
         longitude: f.longitude,
       }).eq("id", id);
@@ -203,6 +213,28 @@ function EditProperty() {
         <Field label="Amenidades / Características" hint="Separá con comas. Aparecen en el detalle y en el PDF.">
           <input value={f.features} onChange={(e) => setF({ ...f, features: e.target.value })} placeholder="Piscina, Gimnasio, Seguridad 24/7" className="input-altum" />
         </Field>
+
+        <div className="grid md:grid-cols-3 gap-4 pt-4 border-t border-border">
+          <div className="md:col-span-3">
+            <p className="text-xs uppercase tracking-wider text-primary font-semibold">Datos internos de captación</p>
+            <p className="text-xs text-muted-foreground mt-1">Privado para CRM, seguimiento y comisiones.</p>
+          </div>
+          <Field label="Propietario">
+            <input value={f.property_owner_name} onChange={(e) => setF({ ...f, property_owner_name: e.target.value })} placeholder="Nombre propietario" className="input-altum" />
+          </Field>
+          <Field label="Teléfono propietario">
+            <input value={f.property_owner_phone} onChange={(e) => setF({ ...f, property_owner_phone: e.target.value })} placeholder="WhatsApp / teléfono" className="input-altum" />
+          </Field>
+          <Field label="Correo propietario">
+            <input value={f.property_owner_email} onChange={(e) => setF({ ...f, property_owner_email: e.target.value })} placeholder="correo@ejemplo.com" className="input-altum" />
+          </Field>
+          <div className="md:col-span-2 text-xs text-muted-foreground bg-muted/40 border border-border rounded-sm p-3">
+            La comisión se calcula sola al cerrar la oportunidad: venta 5% (30% ALTUM / 70% asesor, o 35% + 35% si la captó uno y la cerró otro). Renta = una mensualidad, con la misma división.
+          </div>
+          <Field label="Notas internas">
+            <textarea value={f.internal_notes} onChange={(e) => setF({ ...f, internal_notes: e.target.value })} placeholder="Llaves, negociación, comisión compartida, condiciones especiales…" className="input-altum min-h-[90px]" />
+          </Field>
+        </div>
 
         <div>
           <p className="block text-xs uppercase tracking-wider text-primary font-semibold mb-2">Ubicación en el mapa</p>
