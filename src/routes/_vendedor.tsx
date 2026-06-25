@@ -1,7 +1,8 @@
 import { createFileRoute, Outlet, Navigate, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Columns3, CalendarDays, CircleDollarSign, LogOut } from "lucide-react";
+import { LayoutDashboard, Columns3, CalendarDays, CircleDollarSign, LogOut, BarChart3, FileCheck } from "lucide-react";
+
 
 export const Route = createFileRoute("/_vendedor")({
   component: VendedorLayout,
@@ -49,6 +50,13 @@ function VendedorLayout() {
           <Link to="/vendedores/comisiones" activeProps={{ className: "text-primary bg-muted" }} className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted whitespace-nowrap shrink-0">
             <CircleDollarSign size={16} /> Comisiones
           </Link>
+          <Link to="/vendedores/metricas" activeProps={{ className: "text-primary bg-muted" }} className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted whitespace-nowrap shrink-0">
+  <BarChart3 size={16} /> Métricas
+</Link>
+<Link to="/vendedores/aprobacion" activeProps={{ className: "text-primary bg-muted" }} className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted whitespace-nowrap shrink-0">
+  <FileCheck size={16} /> Aprobación
+</Link>
+
           <button onClick={async () => { await signOut(); window.location.href = "/vendedores/login"; }} className="ml-auto inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary px-3 py-1.5 shrink-0">
             <LogOut size={16} /> Salir
           </button>
