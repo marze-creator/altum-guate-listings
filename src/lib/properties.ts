@@ -1,6 +1,6 @@
 import { UBICACIONES_PREDEFINIDAS } from "@/lib/locations";
 
-export type PropertyType = "Casa" | "Apartamento" | "Terreno" | "Local";
+export type PropertyType = "Casa" | "Apartamento" | "Terreno" | "Local" | "Oficina" | "Bodega";
 export type Operation = "venta" | "renta";
 
 export interface Property {
@@ -25,7 +25,7 @@ export interface Property {
 
 export const ZONES = UBICACIONES_PREDEFINIDAS;
 
-export const PROPERTY_TYPES: PropertyType[] = ["Casa", "Apartamento", "Terreno", "Local"];
+export const PROPERTY_TYPES: PropertyType[] = ["Casa", "Apartamento", "Terreno", "Local", "Oficina", "Bodega"];
 
 export const formatGTQ = (n: number) =>
   new Intl.NumberFormat("es-GT", {

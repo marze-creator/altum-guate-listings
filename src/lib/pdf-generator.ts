@@ -1,10 +1,8 @@
 // Client-only PDF generator for ALTUM property brochures.
 import { jsPDF } from "jspdf";
 import type { Property } from "@/lib/properties";
+import { formatMoney } from "@/lib/properties";
 import { buildMortgageMatrix, TERMS_YEARS } from "@/lib/mortgage";
-
-const fmtMoney = (n: number, currency: "GTQ" | "USD" = "GTQ") =>
-  new Intl.NumberFormat("es-GT", { style: "currency", currency, maximumFractionDigits: 0 }).format(n);
 
 const NAVY = [28, 33, 53] as const;        // #1C2135
 const GOLD = [201, 169, 110] as const;      // #C9A96E
@@ -136,7 +134,7 @@ export async function generatePropertyPDF(
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(17);
-      const priceLabel = fmtMoney(p.price, curr) + (p.operation === "renta" ? "/mes" : "");
+      const priceLabel = formatMoney(p.price, curr) + (p.operation === "renta" ? "/mes" : "");
       doc.text(priceLabel, M + 30, y + imgH - 16 - 14);
       y += imgH + 18;
     }
@@ -257,8 +255,8 @@ export async function generatePropertyPDF(
     matrix.forEach((row, ri) => {
       const ry = y + ri * 22 + 14;
       const pct = (row.downPct * 100).toFixed(0) + "%";
-      const monthly = row.terms.map((t) => fmtMoney(t.monthly, curr) + "/m");
-      const cells = [pct, fmtMoney(row.down, curr), fmtMoney(row.financed, curr)].concat(monthly);
+      const monthly = row.terms.map((t) => formatMoney(t.monthly, curr) + "/m");
+      const cells = [pct, formatMoney(row.down, curr), formatMoney(row.financed, curr)].concat(monthly);
       cells.forEach((c, i) => {
         doc.setFont("helvetica", i === 0 ? "bold" : "normal");
         doc.text(c, M + i * colWp + colWp / 2, ry, { align: "center" });
