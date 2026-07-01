@@ -130,6 +130,7 @@ function RootComponent() {
           </main>
           <SiteFooter />
           <FloatingActions />
+          <AndreaChat />
           <Toaster />
         </div>
       </AuthProvider>
