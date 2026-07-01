@@ -105,49 +105,32 @@ function CrmPage() {
     if (!form.phone.trim() && !form.email.trim()) return toast.error("Agrega teléfono o correo");
 
     const db = supabase as any;
-    const stage = stages.find((item) => item.slug === "nuevo") ?? stages[0];
     const selectedProperty = properties.find((item) => item.id === form.property_id);
-    const dealValue = selectedProperty?.price ?? (form.budget_max ? Number(form.budget_max) : null);
     const currency = selectedProperty?.currency ?? form.currency;
 
-    const { data: lead, error: leadError } = await db
-      .from("leads")
-      .insert({
-        assigned_to_user_id: user.id,
-        created_by: user.id,
-        full_name: form.full_name.trim(),
-        phone: form.phone.trim() || null,
-        email: form.email.trim() || null,
-        source: form.source,
-        interest_operation: form.interest_operation,
-        interest_type: form.interest_type,
-        interest_zone: form.interest_zone.trim() || selectedProperty?.zone || null,
-        budget_max: form.budget_max ? Number(form.budget_max) : null,
-        currency,
-        notes: form.notes.trim() || null,
-        temperature: form.temperature,
-      })
-      .select("id")
-      .single();
+    // Build payload omitting empty enum-typed fields to avoid breaking Postgres enums
+    const payload: Record<string, unknown> = {
+      assigned_to_user_id: user.id,
+      created_by: user.id,
+      full_name: form.full_name.trim(),
+      phone: form.phone.trim() || null,
+      email: form.email.trim() || null,
+      interest_zone: form.interest_zone.trim() || selectedProperty?.zone || null,
+      budget_max: form.budget_max ? Number(form.budget_max) : null,
+      currency,
+      notes: form.notes.trim() || null,
+    };
+    if (form.source && form.source.trim()) payload.source = form.source;
+    if (form.interest_operation && form.interest_operation.trim()) payload.interest_operation = form.interest_operation;
+    if (form.interest_type && form.interest_type.trim()) payload.interest_type = form.interest_type;
+    if (form.temperature && form.temperature.trim()) payload.temperature = form.temperature;
+    if (form.property_id) payload.property_id = form.property_id;
 
+    // Insert ONLY the lead — a database trigger creates the associated deal automatically.
+    const { error: leadError } = await db.from("leads").insert(payload).select("id").single();
     if (leadError) return toast.error(leadError.message);
 
-    const { error: dealError } = await db.from("deals").insert({
-      lead_id: lead.id,
-      property_id: form.property_id || null,
-      assigned_to_user_id: user.id,
-      stage_id: stage?.id,
-      title: selectedProperty ? `${form.full_name.trim()} → ${selectedProperty.title}` : `${form.full_name.trim()} — ${form.interest_type} ${form.interest_zone}`,
-      deal_value: dealValue,
-      currency,
-      commission_rate: 0.05,
-      temperature: form.temperature,
-      next_activity_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    });
-
-    if (dealError) return toast.error(dealError.message);
-
-    toast.success("Lead y oportunidad creados");
+    toast.success("Lead creado");
     setShowNewLead(false);
     setForm({
       full_name: "",
