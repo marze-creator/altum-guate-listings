@@ -167,11 +167,21 @@ function CrmPage() {
   }
 
   async function moveDeal(dealId: string, stageId: string) {
+    const current = deals.find((item) => item.id === dealId);
+    if (!current || current.stage_id === stageId) return;
     const target = stages.find((item) => item.id === stageId);
-    const status = target?.is_won ? "ganado" : target?.is_lost ? "perdido" : "abierto";
-    const { error } = await (supabase as any).from("deals").update({ stage_id: stageId, status }).eq("id", dealId);
+    if (!target) return;
+    const status = target.is_won ? "ganado" : target.is_lost ? "perdido" : "abierto";
+    const { error } = await (supabase as any)
+      .from("deals")
+      .update({ stage_id: stageId, status })
+      .eq("id", dealId);
     if (error) return toast.error(error.message);
-    setDeals((rows) => rows.map((deal) => (deal.id === dealId ? { ...deal, stage_id: stageId, status } : deal)));
+    setDeals((rows) =>
+      rows.map((deal) =>
+        deal.id === dealId ? { ...deal, stage_id: stageId, status, deal_stages: target } : deal,
+      ),
+    );
   }
 
   async function createFollowUp(deal: CrmDeal) {
