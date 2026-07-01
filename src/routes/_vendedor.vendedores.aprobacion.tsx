@@ -57,7 +57,7 @@ function Aprobacion() {
 
   async function load() {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("property_content")
       .select("*, properties(title,zone,price,currency,operation,type)")
       .eq("status", filter)
@@ -87,7 +87,7 @@ function Aprobacion() {
     const d = drafts[item.id];
     if (!d || Object.keys(d).length === 0) return toast.info("No hay cambios que guardar");
     setBusy(item.id);
-    const { error } = await supabase.from("property_content").update(d).eq("id", item.id);
+    const { error } = await (supabase as any).from("property_content").update(d).eq("id", item.id);
     setBusy(null);
     if (error) return toast.error(error.message);
     toast.success("Cambios guardados");
