@@ -22,6 +22,7 @@ import { Route as VendedoresSignupRouteImport } from './routes/vendedores.signup
 import { Route as VendedoresLoginRouteImport } from './routes/vendedores.login'
 import { Route as PropiedadesIdRouteImport } from './routes/propiedades.$id'
 import { Route as AdminAdminRouteImport } from './routes/_admin.admin'
+import { Route as VendedorVendedoresMetricasRouteImport } from './routes/_vendedor.vendedores.metricas'
 import { Route as VendedorVendedoresDashboardRouteImport } from './routes/_vendedor.vendedores.dashboard'
 import { Route as VendedorVendedoresCrmRouteImport } from './routes/_vendedor.vendedores.crm'
 import { Route as VendedorVendedoresComisionesRouteImport } from './routes/_vendedor.vendedores.comisiones'
@@ -93,6 +94,12 @@ const AdminAdminRoute = AdminAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AdminRoute,
 } as any)
+const VendedorVendedoresMetricasRoute =
+  VendedorVendedoresMetricasRouteImport.update({
+    id: '/vendedores/metricas',
+    path: '/vendedores/metricas',
+    getParentRoute: () => VendedorRoute,
+  } as any)
 const VendedorVendedoresDashboardRoute =
   VendedorVendedoresDashboardRouteImport.update({
     id: '/vendedores/dashboard',
@@ -152,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/vendedores/comisiones': typeof VendedorVendedoresComisionesRoute
   '/vendedores/crm': typeof VendedorVendedoresCrmRoute
   '/vendedores/dashboard': typeof VendedorVendedoresDashboardRoute
+  '/vendedores/metricas': typeof VendedorVendedoresMetricasRoute
   '/vendedores/propiedades/nueva': typeof VendedorVendedoresPropiedadesNuevaRoute
   '/vendedores/propiedades/$id/editar': typeof VendedorVendedoresPropiedadesIdEditarRoute
 }
@@ -172,6 +180,7 @@ export interface FileRoutesByTo {
   '/vendedores/comisiones': typeof VendedorVendedoresComisionesRoute
   '/vendedores/crm': typeof VendedorVendedoresCrmRoute
   '/vendedores/dashboard': typeof VendedorVendedoresDashboardRoute
+  '/vendedores/metricas': typeof VendedorVendedoresMetricasRoute
   '/vendedores/propiedades/nueva': typeof VendedorVendedoresPropiedadesNuevaRoute
   '/vendedores/propiedades/$id/editar': typeof VendedorVendedoresPropiedadesIdEditarRoute
 }
@@ -195,6 +204,7 @@ export interface FileRoutesById {
   '/_vendedor/vendedores/comisiones': typeof VendedorVendedoresComisionesRoute
   '/_vendedor/vendedores/crm': typeof VendedorVendedoresCrmRoute
   '/_vendedor/vendedores/dashboard': typeof VendedorVendedoresDashboardRoute
+  '/_vendedor/vendedores/metricas': typeof VendedorVendedoresMetricasRoute
   '/_vendedor/vendedores/propiedades/nueva': typeof VendedorVendedoresPropiedadesNuevaRoute
   '/_vendedor/vendedores/propiedades/$id/editar': typeof VendedorVendedoresPropiedadesIdEditarRoute
 }
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/vendedores/comisiones'
     | '/vendedores/crm'
     | '/vendedores/dashboard'
+    | '/vendedores/metricas'
     | '/vendedores/propiedades/nueva'
     | '/vendedores/propiedades/$id/editar'
   fileRoutesByTo: FileRoutesByTo
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/vendedores/comisiones'
     | '/vendedores/crm'
     | '/vendedores/dashboard'
+    | '/vendedores/metricas'
     | '/vendedores/propiedades/nueva'
     | '/vendedores/propiedades/$id/editar'
   id:
@@ -259,6 +271,7 @@ export interface FileRouteTypes {
     | '/_vendedor/vendedores/comisiones'
     | '/_vendedor/vendedores/crm'
     | '/_vendedor/vendedores/dashboard'
+    | '/_vendedor/vendedores/metricas'
     | '/_vendedor/vendedores/propiedades/nueva'
     | '/_vendedor/vendedores/propiedades/$id/editar'
   fileRoutesById: FileRoutesById
@@ -371,6 +384,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_vendedor/vendedores/metricas': {
+      id: '/_vendedor/vendedores/metricas'
+      path: '/vendedores/metricas'
+      fullPath: '/vendedores/metricas'
+      preLoaderRoute: typeof VendedorVendedoresMetricasRouteImport
+      parentRoute: typeof VendedorRoute
+    }
     '/_vendedor/vendedores/dashboard': {
       id: '/_vendedor/vendedores/dashboard'
       path: '/vendedores/dashboard'
@@ -439,6 +459,7 @@ interface VendedorRouteChildren {
   VendedorVendedoresComisionesRoute: typeof VendedorVendedoresComisionesRoute
   VendedorVendedoresCrmRoute: typeof VendedorVendedoresCrmRoute
   VendedorVendedoresDashboardRoute: typeof VendedorVendedoresDashboardRoute
+  VendedorVendedoresMetricasRoute: typeof VendedorVendedoresMetricasRoute
   VendedorVendedoresPropiedadesNuevaRoute: typeof VendedorVendedoresPropiedadesNuevaRoute
   VendedorVendedoresPropiedadesIdEditarRoute: typeof VendedorVendedoresPropiedadesIdEditarRoute
 }
@@ -449,6 +470,7 @@ const VendedorRouteChildren: VendedorRouteChildren = {
   VendedorVendedoresComisionesRoute: VendedorVendedoresComisionesRoute,
   VendedorVendedoresCrmRoute: VendedorVendedoresCrmRoute,
   VendedorVendedoresDashboardRoute: VendedorVendedoresDashboardRoute,
+  VendedorVendedoresMetricasRoute: VendedorVendedoresMetricasRoute,
   VendedorVendedoresPropiedadesNuevaRoute:
     VendedorVendedoresPropiedadesNuevaRoute,
   VendedorVendedoresPropiedadesIdEditarRoute:

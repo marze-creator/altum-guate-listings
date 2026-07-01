@@ -57,7 +57,7 @@ function Aprobacion() {
 
   async function load() {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("property_content")
       .select("*, properties(title,zone,price,currency,operation,type)")
       .eq("status", filter)
