@@ -380,6 +380,13 @@ function DealCardBody({
   const wa = lead?.phone?.replace(/\D/g, "");
   return (
     <div className={`bg-card border border-border rounded-sm p-4 shadow-sm ${dragging ? "shadow-lg ring-2 ring-secondary" : "cursor-grab active:cursor-grabbing"}`}>
+      {lead?.lead_kind === "captacion" && (
+        <div className="mb-2">
+          <span className="inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
+            Captación
+          </span>
+        </div>
+      )}
       <button
         type="button"
         onPointerDown={(e) => e.stopPropagation()}
