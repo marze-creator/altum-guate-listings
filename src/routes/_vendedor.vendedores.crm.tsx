@@ -91,7 +91,8 @@ function CrmPage() {
       db.from("properties").select("id,title,zone,price,currency,operation").order("created_at", { ascending: false }).limit(200),
       db
         .from("deals")
-        .select("id,title,status,stage_id,lead_id,property_id,assigned_to_user_id,deal_value,currency,commission_rate,commission_total,advisor_commission_rate,commission_advisor,commission_company,next_activity_at,temperature,created_at,leads(id,full_name,phone,email,source,interest_operation,interest_type,interest_zone,budget_min,budget_max,currency,notes,temperature,status,next_follow_up_at),properties(id,title,zone,price,currency,operation,cover_image),deal_stages(id,name,slug,position,probability,color,is_won,is_lost)")
+        .select("id,title,status,stage_id,lead_id,property_id,assigned_to_user_id,deal_value,currency,commission_rate,commission_total,advisor_commission_rate,commission_advisor,commission_company,next_activity_at,temperature,created_at,leads(id,full_name,phone,email,source,lead_kind,interest_operation,interest_type,interest_zone,budget_min,budget_max,currency,notes,temperature,status,next_follow_up_at),properties(id,title,zone,price,currency,operation,cover_image),deal_stages(id,name,slug,position,probability,color,is_won,is_lost)")
+
         .order("created_at", { ascending: false })
         .limit(300),
     ]);
@@ -379,6 +380,13 @@ function DealCardBody({
   const wa = lead?.phone?.replace(/\D/g, "");
   return (
     <div className={`bg-card border border-border rounded-sm p-4 shadow-sm ${dragging ? "shadow-lg ring-2 ring-secondary" : "cursor-grab active:cursor-grabbing"}`}>
+      {lead?.lead_kind === "captacion" && (
+        <div className="mb-2">
+          <span className="inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
+            Captación
+          </span>
+        </div>
+      )}
       <button
         type="button"
         onPointerDown={(e) => e.stopPropagation()}
