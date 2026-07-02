@@ -30,6 +30,7 @@ export interface CrmLead {
   phone: string | null;
   email: string | null;
   source: string | null;
+  lead_kind: "compra" | "captacion" | "venta" | string | null;
   interest_operation: string | null;
   interest_type: string | null;
   interest_zone: string | null;
@@ -41,6 +42,7 @@ export interface CrmLead {
   status: string;
   next_follow_up_at: string | null;
 }
+
 
 export interface CrmPropertyMini {
   id: string;
