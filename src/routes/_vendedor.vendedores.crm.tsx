@@ -340,7 +340,7 @@ function CrmPage() {
                 return (
                   <StageColumn key={stage.id} stage={stage} count={stageDeals.length}>
                     {stageDeals.map((deal) => (
-                      <DraggableCard key={deal.id} deal={deal} stages={stages} onMove={moveDeal} onOpen={() => setDetailDealId(deal.id)} />
+                      <DraggableCard key={deal.id} deal={deal} stages={stages} onMove={moveDeal} onOpen={() => setDetailDealId(deal.id)} sellerName={deal.assigned_to_user_id ? sellerNames[deal.assigned_to_user_id] : undefined} />
                     ))}
                     {stageDeals.length === 0 && <p className="text-xs text-muted-foreground text-center py-8">Suelta oportunidades aquí</p>}
                   </StageColumn>
