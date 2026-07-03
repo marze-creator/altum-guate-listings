@@ -397,7 +397,7 @@ function StageColumn({ stage, count, children }: { stage: CrmStage; count: numbe
   );
 }
 
-function DraggableCard({ deal, stages, onMove, onOpen }: { deal: CrmDeal; stages: CrmStage[]; onMove: (dealId: string, stageId: string) => void; onOpen: () => void }) {
+function DraggableCard({ deal, stages, onMove, onOpen, sellerName }: { deal: CrmDeal; stages: CrmStage[]; onMove: (dealId: string, stageId: string) => void; onOpen: () => void; sellerName?: string }) {
   const { attributes, listeners, setNodeRef, isDragging, transform } = useDraggable({ id: deal.id });
   const style: React.CSSProperties = {
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
@@ -406,7 +406,7 @@ function DraggableCard({ deal, stages, onMove, onOpen }: { deal: CrmDeal; stages
   };
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <DealCardBody deal={deal} stages={stages} onMove={onMove} onOpen={onOpen} />
+      <DealCardBody deal={deal} stages={stages} onMove={onMove} onOpen={onOpen} sellerName={sellerName} />
     </div>
   );
 }
