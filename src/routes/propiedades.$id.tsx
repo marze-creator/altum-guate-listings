@@ -136,7 +136,8 @@ function PropertyDetail() {
         </aside>
       </div>
 
-      <Cotizador price={p.price} />
+      <Cotizador price={p.price} operation={p.operation} currency={p.currency} />
+
 
       <div className="mt-16 grid gap-12 lg:grid-cols-2">
         <div>

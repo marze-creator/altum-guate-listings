@@ -1,9 +1,11 @@
-import { buildMortgageMatrix, DEFAULT_ANNUAL_RATE, fmtGTQ, TERMS_YEARS } from "@/lib/mortgage";
+import { buildMortgageMatrix, DEFAULT_ANNUAL_RATE, TERMS_YEARS } from "@/lib/mortgage";
+import { formatMoney, type Operation } from "@/lib/properties";
 import { Calculator } from "lucide-react";
 
-export function Cotizador({ price }: { price: number }) {
-  if (!price || price <= 0) return null;
+export function Cotizador({ price, operation, currency }: { price: number; operation: Operation; currency?: "GTQ" | "USD" }) {
+  if (!price || price <= 0 || operation !== "venta") return null;
   const rows = buildMortgageMatrix(price, DEFAULT_ANNUAL_RATE);
+  const cur = currency ?? "GTQ";
 
   return (
     <section className="mt-16">
@@ -30,10 +32,10 @@ export function Cotizador({ price }: { price: number }) {
             {rows.map((r) => (
               <tr key={r.downPct} className="border-t border-border">
                 <td className="p-3 font-semibold text-primary">{(r.downPct * 100).toFixed(0)}%</td>
-                <td className="p-3 text-right">{fmtGTQ(r.down)}</td>
-                <td className="p-3 text-right">{fmtGTQ(r.financed)}</td>
+                <td className="p-3 text-right">{formatMoney(r.down, cur)}</td>
+                <td className="p-3 text-right">{formatMoney(r.financed, cur)}</td>
                 {r.terms.map((t) => (
-                  <td key={t.years} className="p-3 text-right font-semibold text-primary">{fmtGTQ(t.monthly)}/mes</td>
+                  <td key={t.years} className="p-3 text-right font-semibold text-primary">{formatMoney(t.monthly, cur)}/mes</td>
                 ))}
               </tr>
             ))}
@@ -46,3 +48,4 @@ export function Cotizador({ price }: { price: number }) {
     </section>
   );
 }
+
