@@ -83,7 +83,7 @@ function CrmPage() {
   useEffect(() => {
     if (!user) return;
     load();
-  }, [user]);
+  }, [user, isAdmin]);
 
   async function load() {
     setLoading(true);
