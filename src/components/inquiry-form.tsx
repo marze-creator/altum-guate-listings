@@ -8,11 +8,12 @@ const schema = z.object({
   name: z.string().trim().min(2, "Nombre muy corto").max(120),
   email: z.string().trim().email("Correo inválido").max(254),
   phone: z.string().trim().max(40).optional().or(z.literal("")),
+  budget: z.string().trim().max(60).optional().or(z.literal("")),
   message: z.string().trim().min(5, "Mensaje muy corto").max(2000),
 });
 
 export function InquiryForm({ propertyId, propertyTitle }: { propertyId: string; propertyTitle: string }) {
-  const [form, setForm] = useState({ name: "", email: "", phone: "", message: `Me interesa la propiedad "${propertyTitle}". Por favor contáctenme.` });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", budget: "", message: `Me interesa la propiedad "${propertyTitle}". Por favor contáctenme.` });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -24,12 +25,13 @@ export function InquiryForm({ propertyId, propertyTitle }: { propertyId: string;
       return;
     }
     setSending(true);
+    const budgetLine = parsed.data.budget ? `Presupuesto: ${parsed.data.budget}\nPropiedad de interés (ID): ${propertyId}\n\n` : `Propiedad de interés (ID): ${propertyId}\n\n`;
     const { error } = await supabase.from("inquiries").insert({
       property_id: propertyId,
       name: parsed.data.name,
       email: parsed.data.email,
       phone: parsed.data.phone || null,
-      message: parsed.data.message,
+      message: budgetLine + parsed.data.message,
     });
     setSending(false);
     if (error) return toast.error(error.message);
