@@ -106,13 +106,45 @@ function CrmPage() {
     setStages((stageRows?.length ? stageRows : DEFAULT_CRM_STAGES) as CrmStage[]);
     setProperties((propertyRows ?? []) as PropertyOption[]);
     setDeals((dealRows ?? []) as CrmDeal[]);
+
+    // Load vendor names for assigned_to_user_id display and admin filter
+    const assignedIds = Array.from(
+      new Set(((dealRows ?? []) as CrmDeal[]).map((d) => d.assigned_to_user_id).filter(Boolean) as string[]),
+    );
+    let vendorIds: string[] = [];
+    if (isAdmin) {
+      const { data: roleRows } = await db.from("user_roles").select("user_id").eq("role", "vendedor");
+      vendorIds = ((roleRows ?? []) as { user_id: string }[]).map((r) => r.user_id);
+    }
+    const idsToFetch = Array.from(new Set([...assignedIds, ...vendorIds]));
+    if (idsToFetch.length) {
+      const { data: profRows } = await db.from("profiles").select("user_id,full_name").in("user_id", idsToFetch);
+      const map: Record<string, string> = {};
+      ((profRows ?? []) as { user_id: string; full_name: string | null }[]).forEach((p) => {
+        map[p.user_id] = p.full_name || "Sin nombre";
+      });
+      setSellerNames(map);
+      if (isAdmin) {
+        setVendors(vendorIds.map((id) => ({ user_id: id, full_name: map[id] || "Sin nombre" })).sort((a, b) => a.full_name.localeCompare(b.full_name)));
+      }
+    } else {
+      setSellerNames({});
+      setVendors([]);
+    }
+
     setLoading(false);
   }
 
+  const scopedDeals = useMemo(() => {
+    if (!isAdmin) return deals.filter((d) => d.assigned_to_user_id === user?.id);
+    if (sellerFilter !== "all") return deals.filter((d) => d.assigned_to_user_id === sellerFilter);
+    return deals;
+  }, [deals, isAdmin, sellerFilter, user?.id]);
+
   const filteredDeals = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return deals;
-    return deals.filter((deal) => {
+    if (!q) return scopedDeals;
+    return scopedDeals.filter((deal) => {
       const lead = deal.leads;
       const prop = deal.properties;
       return [deal.title, lead?.full_name, lead?.phone, lead?.interest_zone, prop?.title, prop?.zone]
