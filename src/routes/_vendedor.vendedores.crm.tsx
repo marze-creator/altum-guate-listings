@@ -272,9 +272,23 @@ function CrmPage() {
         <Metric label="Vista" value={isAdmin ? "Admin" : "Asesor"} />
       </div>
 
-      <div className="mb-5 flex items-center gap-2 rounded-sm border border-border bg-card px-3 h-11 max-w-xl">
-        <Search size={16} className="text-muted-foreground" />
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por cliente, teléfono, propiedad o zona…" className="bg-transparent outline-none flex-1 text-sm" />
+      <div className="mb-5 flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 rounded-sm border border-border bg-card px-3 h-11 max-w-xl flex-1 min-w-[240px]">
+          <Search size={16} className="text-muted-foreground" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por cliente, teléfono, propiedad o zona…" className="bg-transparent outline-none flex-1 text-sm" />
+        </div>
+        {isAdmin && (
+          <select
+            value={sellerFilter}
+            onChange={(e) => setSellerFilter(e.target.value)}
+            className="h-11 px-3 border border-border rounded-sm bg-card text-sm min-w-[220px]"
+          >
+            <option value="all">Todos los vendedores</option>
+            {vendors.map((v) => (
+              <option key={v.user_id} value={v.user_id}>{v.full_name}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {showNewLead && (
