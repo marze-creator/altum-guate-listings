@@ -52,6 +52,9 @@ function CrmPage() {
   const [stages, setStages] = useState<CrmStage[]>([]);
   const [deals, setDeals] = useState<CrmDeal[]>([]);
   const [properties, setProperties] = useState<PropertyOption[]>([]);
+  const [vendors, setVendors] = useState<{ user_id: string; full_name: string }[]>([]);
+  const [sellerNames, setSellerNames] = useState<Record<string, string>>({});
+  const [sellerFilter, setSellerFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [showNewLead, setShowNewLead] = useState(false);
@@ -80,7 +83,7 @@ function CrmPage() {
   useEffect(() => {
     if (!user) return;
     load();
-  }, [user]);
+  }, [user, isAdmin]);
 
   async function load() {
     setLoading(true);
@@ -103,23 +106,55 @@ function CrmPage() {
     setStages((stageRows?.length ? stageRows : DEFAULT_CRM_STAGES) as CrmStage[]);
     setProperties((propertyRows ?? []) as PropertyOption[]);
     setDeals((dealRows ?? []) as CrmDeal[]);
+
+    // Load vendor names for assigned_to_user_id display and admin filter
+    const assignedIds = Array.from(
+      new Set(((dealRows ?? []) as CrmDeal[]).map((d) => d.assigned_to_user_id).filter(Boolean) as string[]),
+    );
+    let vendorIds: string[] = [];
+    if (isAdmin) {
+      const { data: roleRows } = await db.from("user_roles").select("user_id").eq("role", "vendedor");
+      vendorIds = ((roleRows ?? []) as { user_id: string }[]).map((r) => r.user_id);
+    }
+    const idsToFetch = Array.from(new Set([...assignedIds, ...vendorIds]));
+    if (idsToFetch.length) {
+      const { data: profRows } = await db.from("profiles").select("user_id,full_name").in("user_id", idsToFetch);
+      const map: Record<string, string> = {};
+      ((profRows ?? []) as { user_id: string; full_name: string | null }[]).forEach((p) => {
+        map[p.user_id] = p.full_name || "Sin nombre";
+      });
+      setSellerNames(map);
+      if (isAdmin) {
+        setVendors(vendorIds.map((id) => ({ user_id: id, full_name: map[id] || "Sin nombre" })).sort((a, b) => a.full_name.localeCompare(b.full_name)));
+      }
+    } else {
+      setSellerNames({});
+      setVendors([]);
+    }
+
     setLoading(false);
   }
 
+  const scopedDeals = useMemo(() => {
+    if (!isAdmin) return deals.filter((d) => d.assigned_to_user_id === user?.id);
+    if (sellerFilter !== "all") return deals.filter((d) => d.assigned_to_user_id === sellerFilter);
+    return deals;
+  }, [deals, isAdmin, sellerFilter, user?.id]);
+
   const filteredDeals = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return deals;
-    return deals.filter((deal) => {
+    if (!q) return scopedDeals;
+    return scopedDeals.filter((deal) => {
       const lead = deal.leads;
       const prop = deal.properties;
       return [deal.title, lead?.full_name, lead?.phone, lead?.interest_zone, prop?.title, prop?.zone]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(q));
     });
-  }, [deals, query]);
+  }, [scopedDeals, query]);
 
   const totals = useMemo(() => {
-    return deals.reduce(
+    return scopedDeals.reduce(
       (acc, deal) => {
         if (deal.status === "perdido") return acc;
         acc.count += 1;
@@ -129,7 +164,7 @@ function CrmPage() {
       },
       { count: 0, pipeline: 0, commission: 0 },
     );
-  }, [deals]);
+  }, [scopedDeals]);
 
   const detailDeal = useMemo(() => deals.find((d) => d.id === detailDealId) ?? null, [deals, detailDealId]);
   const activeDeal = useMemo(() => deals.find((d) => d.id === activeDealId) ?? null, [deals, activeDealId]);
@@ -237,9 +272,23 @@ function CrmPage() {
         <Metric label="Vista" value={isAdmin ? "Admin" : "Asesor"} />
       </div>
 
-      <div className="mb-5 flex items-center gap-2 rounded-sm border border-border bg-card px-3 h-11 max-w-xl">
-        <Search size={16} className="text-muted-foreground" />
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por cliente, teléfono, propiedad o zona…" className="bg-transparent outline-none flex-1 text-sm" />
+      <div className="mb-5 flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 rounded-sm border border-border bg-card px-3 h-11 max-w-xl flex-1 min-w-[240px]">
+          <Search size={16} className="text-muted-foreground" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por cliente, teléfono, propiedad o zona…" className="bg-transparent outline-none flex-1 text-sm" />
+        </div>
+        {isAdmin && (
+          <select
+            value={sellerFilter}
+            onChange={(e) => setSellerFilter(e.target.value)}
+            className="h-11 px-3 border border-border rounded-sm bg-card text-sm min-w-[220px]"
+          >
+            <option value="all">Todos los vendedores</option>
+            {vendors.map((v) => (
+              <option key={v.user_id} value={v.user_id}>{v.full_name}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {showNewLead && (
@@ -291,7 +340,7 @@ function CrmPage() {
                 return (
                   <StageColumn key={stage.id} stage={stage} count={stageDeals.length}>
                     {stageDeals.map((deal) => (
-                      <DraggableCard key={deal.id} deal={deal} stages={stages} onMove={moveDeal} onOpen={() => setDetailDealId(deal.id)} />
+                      <DraggableCard key={deal.id} deal={deal} stages={stages} onMove={moveDeal} onOpen={() => setDetailDealId(deal.id)} sellerName={deal.assigned_to_user_id ? sellerNames[deal.assigned_to_user_id] : undefined} />
                     ))}
                     {stageDeals.length === 0 && <p className="text-xs text-muted-foreground text-center py-8">Suelta oportunidades aquí</p>}
                   </StageColumn>
@@ -348,7 +397,7 @@ function StageColumn({ stage, count, children }: { stage: CrmStage; count: numbe
   );
 }
 
-function DraggableCard({ deal, stages, onMove, onOpen }: { deal: CrmDeal; stages: CrmStage[]; onMove: (dealId: string, stageId: string) => void; onOpen: () => void }) {
+function DraggableCard({ deal, stages, onMove, onOpen, sellerName }: { deal: CrmDeal; stages: CrmStage[]; onMove: (dealId: string, stageId: string) => void; onOpen: () => void; sellerName?: string }) {
   const { attributes, listeners, setNodeRef, isDragging, transform } = useDraggable({ id: deal.id });
   const style: React.CSSProperties = {
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
@@ -357,7 +406,7 @@ function DraggableCard({ deal, stages, onMove, onOpen }: { deal: CrmDeal; stages
   };
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <DealCardBody deal={deal} stages={stages} onMove={onMove} onOpen={onOpen} />
+      <DealCardBody deal={deal} stages={stages} onMove={onMove} onOpen={onOpen} sellerName={sellerName} />
     </div>
   );
 }
@@ -368,12 +417,14 @@ function DealCardBody({
   onMove,
   onOpen,
   dragging,
+  sellerName,
 }: {
   deal: CrmDeal;
   stages?: CrmStage[];
   onMove?: (dealId: string, stageId: string) => void;
   onOpen?: () => void;
   dragging?: boolean;
+  sellerName?: string;
 }) {
   const lead = deal.leads;
   const property = deal.properties;
@@ -405,6 +456,7 @@ function DealCardBody({
         </div>
       </button>
       <div className="mt-3 space-y-1.5 text-xs text-muted-foreground">
+        {sellerName && <p className="text-[11px] font-medium text-primary/80">Asesor: {sellerName}</p>}
         {lead?.phone && <p className="flex items-center gap-1.5"><MessageCircle size={12} /> {lead.phone}</p>}
         {property?.zone && <p>{property.zone} · {property.operation}</p>}
         <p className="flex items-center gap-1.5"><CircleDollarSign size={12} /> {money(deal.deal_value, deal.currency ?? "GTQ")} · Comisión {money(deal.commission_advisor, deal.currency ?? "GTQ")}</p>
