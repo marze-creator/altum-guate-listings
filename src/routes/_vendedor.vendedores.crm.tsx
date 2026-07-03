@@ -164,7 +164,7 @@ function CrmPage() {
       },
       { count: 0, pipeline: 0, commission: 0 },
     );
-  }, [deals]);
+  }, [scopedDeals]);
 
   const detailDeal = useMemo(() => deals.find((d) => d.id === detailDealId) ?? null, [deals, detailDealId]);
   const activeDeal = useMemo(() => deals.find((d) => d.id === activeDealId) ?? null, [deals, activeDealId]);
