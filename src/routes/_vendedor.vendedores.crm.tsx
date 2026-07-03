@@ -417,12 +417,14 @@ function DealCardBody({
   onMove,
   onOpen,
   dragging,
+  sellerName,
 }: {
   deal: CrmDeal;
   stages?: CrmStage[];
   onMove?: (dealId: string, stageId: string) => void;
   onOpen?: () => void;
   dragging?: boolean;
+  sellerName?: string;
 }) {
   const lead = deal.leads;
   const property = deal.properties;
@@ -454,6 +456,7 @@ function DealCardBody({
         </div>
       </button>
       <div className="mt-3 space-y-1.5 text-xs text-muted-foreground">
+        {sellerName && <p className="text-[11px] font-medium text-primary/80">Asesor: {sellerName}</p>}
         {lead?.phone && <p className="flex items-center gap-1.5"><MessageCircle size={12} /> {lead.phone}</p>}
         {property?.zone && <p>{property.zone} · {property.operation}</p>}
         <p className="flex items-center gap-1.5"><CircleDollarSign size={12} /> {money(deal.deal_value, deal.currency ?? "GTQ")} · Comisión {money(deal.commission_advisor, deal.currency ?? "GTQ")}</p>
