@@ -151,10 +151,10 @@ function CrmPage() {
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(q));
     });
-  }, [deals, query]);
+  }, [scopedDeals, query]);
 
   const totals = useMemo(() => {
-    return deals.reduce(
+    return scopedDeals.reduce(
       (acc, deal) => {
         if (deal.status === "perdido") return acc;
         acc.count += 1;
