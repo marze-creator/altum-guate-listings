@@ -52,6 +52,9 @@ function CrmPage() {
   const [stages, setStages] = useState<CrmStage[]>([]);
   const [deals, setDeals] = useState<CrmDeal[]>([]);
   const [properties, setProperties] = useState<PropertyOption[]>([]);
+  const [vendors, setVendors] = useState<{ user_id: string; full_name: string }[]>([]);
+  const [sellerNames, setSellerNames] = useState<Record<string, string>>({});
+  const [sellerFilter, setSellerFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [showNewLead, setShowNewLead] = useState(false);
