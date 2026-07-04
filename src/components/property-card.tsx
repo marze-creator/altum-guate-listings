@@ -5,14 +5,14 @@ import { type Property, formatMoney } from "@/lib/properties";
 export function PropertyCard({ p }: { p: Property }) {
   return (
     <article className="group bg-card rounded-sm overflow-hidden border border-border hover:shadow-elegant transition-all duration-300">
-      <Link to="/propiedades/$id" params={{ id: p.id }} className="block relative aspect-[4/3] overflow-hidden">
+      <Link to="/propiedades/$id" params={{ id: p.id }} className="block relative aspect-square overflow-hidden bg-muted">
         <img
           src={p.image}
           alt={p.title}
           loading="lazy"
           width={1024}
           height={768}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105"
         />
         {p.badge && (
           <span className="absolute top-3 left-3 badge-altum">{p.badge}</span>
