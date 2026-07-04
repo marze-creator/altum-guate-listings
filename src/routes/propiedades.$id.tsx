@@ -76,14 +76,14 @@ function PropertyDetail() {
 
       <div className="mt-6 grid gap-10 lg:grid-cols-[1.6fr_1fr]">
         <div>
-          <div className="aspect-[16/10] overflow-hidden rounded-sm bg-muted">
-            <img src={images[activeImg] || p.image} alt={p.title} className="w-full h-full object-cover" />
+          <div className="aspect-square overflow-hidden rounded-sm bg-muted">
+            <img src={images[activeImg] || p.image} alt={p.title} className="w-full h-full object-contain" />
           </div>
           {images.length > 1 && (
             <div className="mt-3 grid grid-cols-4 gap-3">
               {images.slice(0, 8).map((src, i) => (
-                <button key={i} onClick={() => setActiveImg(i)} className={`aspect-[4/3] overflow-hidden rounded-sm border ${i === activeImg ? "border-secondary" : "border-border opacity-80"}`}>
-                  <img src={src} alt="" loading="lazy" className="w-full h-full object-cover" />
+                <button key={i} onClick={() => setActiveImg(i)} className={`aspect-square overflow-hidden rounded-sm bg-muted border ${i === activeImg ? "border-secondary" : "border-border opacity-80"}`}>
+                  <img src={src} alt="" loading="lazy" className="w-full h-full object-contain" />
                 </button>
               ))}
             </div>
