@@ -76,8 +76,8 @@ function PropertyDetail() {
 
       <div className="mt-6 grid gap-10 lg:grid-cols-[1.6fr_1fr]">
         <div>
-          <div className="aspect-[16/10] overflow-hidden rounded-sm bg-muted">
-            <img src={images[activeImg] || p.image} alt={p.title} className="w-full h-full object-cover" />
+          <div className="aspect-square overflow-hidden rounded-sm bg-muted">
+            <img src={images[activeImg] || p.image} alt={p.title} className="w-full h-full object-contain" />
           </div>
           {images.length > 1 && (
             <div className="mt-3 grid grid-cols-4 gap-3">
