@@ -56,6 +56,11 @@ function VendedorLayout() {
 <Link to="/vendedores/aprobacion" activeProps={{ className: "text-primary bg-muted" }} className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted whitespace-nowrap shrink-0">
   <FileCheck size={16} /> Aprobación
 </Link>
+{isAdmin && (
+  <Link to="/vendedores/contenido" activeProps={{ className: "text-primary bg-muted" }} className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted whitespace-nowrap shrink-0">
+    <Sparkles size={16} /> Contenido
+  </Link>
+)}
 
           <button onClick={async () => { await signOut(); window.location.href = "/vendedores/login"; }} className="ml-auto inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary px-3 py-1.5 shrink-0">
             <LogOut size={16} /> Salir
