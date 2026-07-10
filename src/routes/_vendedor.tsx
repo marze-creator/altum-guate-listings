@@ -9,7 +9,7 @@ export const Route = createFileRoute("/_vendedor")({
 });
 
 function VendedorLayout() {
-  const { user, loading, isVendedor, signOut } = useAuth();
+  const { user, loading, isVendedor, isAdmin, signOut } = useAuth();
   if (loading) {
     return <div className="min-h-[60vh] flex items-center justify-center text-muted-foreground">Cargando…</div>;
   }
