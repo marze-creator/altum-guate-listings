@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, Navigate, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Columns3, CalendarDays, CircleDollarSign, LogOut, BarChart3, FileCheck } from "lucide-react";
+import { LayoutDashboard, Columns3, CalendarDays, CircleDollarSign, LogOut, BarChart3, FileCheck, Sparkles } from "lucide-react";
 
 
 export const Route = createFileRoute("/_vendedor")({
