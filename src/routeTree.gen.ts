@@ -25,6 +25,7 @@ import { Route as AdminAdminRouteImport } from './routes/_admin.admin'
 import { Route as VendedorVendedoresMetricasRouteImport } from './routes/_vendedor.vendedores.metricas'
 import { Route as VendedorVendedoresDashboardRouteImport } from './routes/_vendedor.vendedores.dashboard'
 import { Route as VendedorVendedoresCrmRouteImport } from './routes/_vendedor.vendedores.crm'
+import { Route as VendedorVendedoresContenidoRouteImport } from './routes/_vendedor.vendedores.contenido'
 import { Route as VendedorVendedoresComisionesRouteImport } from './routes/_vendedor.vendedores.comisiones'
 import { Route as VendedorVendedoresAprobacionRouteImport } from './routes/_vendedor.vendedores.aprobacion'
 import { Route as VendedorVendedoresAgendaRouteImport } from './routes/_vendedor.vendedores.agenda'
@@ -111,6 +112,12 @@ const VendedorVendedoresCrmRoute = VendedorVendedoresCrmRouteImport.update({
   path: '/vendedores/crm',
   getParentRoute: () => VendedorRoute,
 } as any)
+const VendedorVendedoresContenidoRoute =
+  VendedorVendedoresContenidoRouteImport.update({
+    id: '/vendedores/contenido',
+    path: '/vendedores/contenido',
+    getParentRoute: () => VendedorRoute,
+  } as any)
 const VendedorVendedoresComisionesRoute =
   VendedorVendedoresComisionesRouteImport.update({
     id: '/vendedores/comisiones',
@@ -157,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/vendedores/agenda': typeof VendedorVendedoresAgendaRoute
   '/vendedores/aprobacion': typeof VendedorVendedoresAprobacionRoute
   '/vendedores/comisiones': typeof VendedorVendedoresComisionesRoute
+  '/vendedores/contenido': typeof VendedorVendedoresContenidoRoute
   '/vendedores/crm': typeof VendedorVendedoresCrmRoute
   '/vendedores/dashboard': typeof VendedorVendedoresDashboardRoute
   '/vendedores/metricas': typeof VendedorVendedoresMetricasRoute
@@ -178,6 +186,7 @@ export interface FileRoutesByTo {
   '/vendedores/agenda': typeof VendedorVendedoresAgendaRoute
   '/vendedores/aprobacion': typeof VendedorVendedoresAprobacionRoute
   '/vendedores/comisiones': typeof VendedorVendedoresComisionesRoute
+  '/vendedores/contenido': typeof VendedorVendedoresContenidoRoute
   '/vendedores/crm': typeof VendedorVendedoresCrmRoute
   '/vendedores/dashboard': typeof VendedorVendedoresDashboardRoute
   '/vendedores/metricas': typeof VendedorVendedoresMetricasRoute
@@ -202,6 +211,7 @@ export interface FileRoutesById {
   '/_vendedor/vendedores/agenda': typeof VendedorVendedoresAgendaRoute
   '/_vendedor/vendedores/aprobacion': typeof VendedorVendedoresAprobacionRoute
   '/_vendedor/vendedores/comisiones': typeof VendedorVendedoresComisionesRoute
+  '/_vendedor/vendedores/contenido': typeof VendedorVendedoresContenidoRoute
   '/_vendedor/vendedores/crm': typeof VendedorVendedoresCrmRoute
   '/_vendedor/vendedores/dashboard': typeof VendedorVendedoresDashboardRoute
   '/_vendedor/vendedores/metricas': typeof VendedorVendedoresMetricasRoute
@@ -225,6 +235,7 @@ export interface FileRouteTypes {
     | '/vendedores/agenda'
     | '/vendedores/aprobacion'
     | '/vendedores/comisiones'
+    | '/vendedores/contenido'
     | '/vendedores/crm'
     | '/vendedores/dashboard'
     | '/vendedores/metricas'
@@ -246,6 +257,7 @@ export interface FileRouteTypes {
     | '/vendedores/agenda'
     | '/vendedores/aprobacion'
     | '/vendedores/comisiones'
+    | '/vendedores/contenido'
     | '/vendedores/crm'
     | '/vendedores/dashboard'
     | '/vendedores/metricas'
@@ -269,6 +281,7 @@ export interface FileRouteTypes {
     | '/_vendedor/vendedores/agenda'
     | '/_vendedor/vendedores/aprobacion'
     | '/_vendedor/vendedores/comisiones'
+    | '/_vendedor/vendedores/contenido'
     | '/_vendedor/vendedores/crm'
     | '/_vendedor/vendedores/dashboard'
     | '/_vendedor/vendedores/metricas'
@@ -405,6 +418,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VendedorVendedoresCrmRouteImport
       parentRoute: typeof VendedorRoute
     }
+    '/_vendedor/vendedores/contenido': {
+      id: '/_vendedor/vendedores/contenido'
+      path: '/vendedores/contenido'
+      fullPath: '/vendedores/contenido'
+      preLoaderRoute: typeof VendedorVendedoresContenidoRouteImport
+      parentRoute: typeof VendedorRoute
+    }
     '/_vendedor/vendedores/comisiones': {
       id: '/_vendedor/vendedores/comisiones'
       path: '/vendedores/comisiones'
@@ -457,6 +477,7 @@ interface VendedorRouteChildren {
   VendedorVendedoresAgendaRoute: typeof VendedorVendedoresAgendaRoute
   VendedorVendedoresAprobacionRoute: typeof VendedorVendedoresAprobacionRoute
   VendedorVendedoresComisionesRoute: typeof VendedorVendedoresComisionesRoute
+  VendedorVendedoresContenidoRoute: typeof VendedorVendedoresContenidoRoute
   VendedorVendedoresCrmRoute: typeof VendedorVendedoresCrmRoute
   VendedorVendedoresDashboardRoute: typeof VendedorVendedoresDashboardRoute
   VendedorVendedoresMetricasRoute: typeof VendedorVendedoresMetricasRoute
@@ -468,6 +489,7 @@ const VendedorRouteChildren: VendedorRouteChildren = {
   VendedorVendedoresAgendaRoute: VendedorVendedoresAgendaRoute,
   VendedorVendedoresAprobacionRoute: VendedorVendedoresAprobacionRoute,
   VendedorVendedoresComisionesRoute: VendedorVendedoresComisionesRoute,
+  VendedorVendedoresContenidoRoute: VendedorVendedoresContenidoRoute,
   VendedorVendedoresCrmRoute: VendedorVendedoresCrmRoute,
   VendedorVendedoresDashboardRoute: VendedorVendedoresDashboardRoute,
   VendedorVendedoresMetricasRoute: VendedorVendedoresMetricasRoute,
@@ -498,13 +520,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
