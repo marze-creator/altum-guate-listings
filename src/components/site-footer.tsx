@@ -140,12 +140,20 @@ function FooterBottom() {
   return (
     <div className="border-t border-primary-foreground/10">
       <div className="container-altum py-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-primary-foreground/60">
-        <p>
-          (c) {new Date().getFullYear()} ALTUM GROUP. Todos los derechos reservados.
-        </p>
+        <div className="text-center sm:text-left">
+          <p>© 2026 ALTUM Group · Benett Marcelo Rojas Peña</p>
+          <p className="mt-1">
+            Propiedad de Benett Marcelo Rojas Peña
+          </p>
+        </div>
+
         <div className="flex gap-4">
-          <a href="#" className="hover:text-secondary">Terminos</a>
-          <a href="#" className="hover:text-secondary">Privacidad</a>
+          <a href="#" className="hover:text-secondary">
+            Terminos
+          </a>
+          <a href="#" className="hover:text-secondary">
+            Privacidad
+          </a>
         </div>
       </div>
     </div>
