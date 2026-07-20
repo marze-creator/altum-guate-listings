@@ -141,9 +141,9 @@ function FooterBottom() {
     <div className="border-t border-primary-foreground/10">
       <div className="container-altum py-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-primary-foreground/60">
         <div className="text-center sm:text-left">
-          <p>© 2026 ALTUM Group · Benett Marcelo Rojas Peña</p>
+          <p>© 2026 ALTUM Group · By RAME IMPORTACIONES</p>
           <p className="mt-1">
-            Propiedad de Benett Marcelo Rojas Peña
+            Propiedad de Benett Marcelo Rojas Peña (Rame Importaciones, registrado)
           </p>
         </div>
 
