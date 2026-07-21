@@ -43,11 +43,21 @@ function AcercaPage() {
             <p className="text-xs uppercase tracking-[0.25em] text-secondary font-semibold mb-3">Nuestra historia</p>
             <h2 className="font-display text-4xl text-primary mb-6">Una trayectoria construida sobre confianza</h2>
             <p className="text-primary/80 leading-relaxed">
-              Desde 2013 ALTUM GROUP ha guiado a familias e inversionistas en la compra, venta, renta y desarrollo de propiedades premium en Guatemala. Nuestro nombre — ALTUM, "lo elevado" — refleja el estándar que aplicamos a cada transacción.
+              Desde 2023 ALTUM GROUP ha guiado a familias e inversionistas en la compra, venta, renta y desarrollo de propiedades premium en Guatemala. Nuestro nombre — ALTUM, "lo elevado" — refleja el estándar que aplicamos a cada transacción.
             </p>
             <p className="mt-4 text-primary/80 leading-relaxed">
               Combinamos conocimiento profundo del mercado local con un servicio de boutique internacional.
             </p>
+            <div className="mt-8 border-l-4 border-secondary bg-secondary/10 px-5 py-4 rounded-r-sm">
+  <p className="text-xs uppercase tracking-[0.2em] text-secondary font-semibold">
+    Información legal
+  </p>
+
+  <p className="mt-2 text-sm text-primary/80 leading-relaxed">
+    ALTUM Group es la división inmobiliaria de RAME Importaciones,
+    propiedad y administrada por Benett Marcelo Rojas Peña, en Guatemala.
+  </p>
+</div>
           </div>
           <div className="aspect-[4/3] bg-muted rounded-sm overflow-hidden">
             <img src="/src/assets/prop-2.jpg" alt="Oficinas ALTUM" loading="lazy" className="w-full h-full object-cover" />
