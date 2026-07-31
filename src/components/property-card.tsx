@@ -2,7 +2,13 @@ import { Link } from "@tanstack/react-router";
 import { Bath, BedDouble, MapPin, Maximize } from "lucide-react";
 import { type Property, formatMoney } from "@/lib/properties";
 
-export function PropertyCard({ p }: { p: Property }) {
+// Número de WhatsApp de ALTUM (donde responde Andrea)
+const ALTUM_WA = "https://wa.me/50241042250";
+
+export function PropertyCard({ p }: { p: Property & { status?: string } }) {
+  const disponible = !p.status || p.status === "published";
+  const estadoLabel = p.status === "sold" ? "sold" : p.status === "rented" ? "rented" : null;
+
   return (
     <article className="group bg-card rounded-sm overflow-hidden border border-border hover:shadow-elegant transition-all duration-300">
       <Link to="/propiedades/$id" params={{ id: p.id }} className="block relative aspect-square overflow-hidden bg-muted">
@@ -12,12 +18,20 @@ export function PropertyCard({ p }: { p: Property }) {
           loading="lazy"
           width={1024}
           height={768}
-          className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105"
+          className={`w-full h-full object-contain transition-transform duration-700 group-hover:scale-105 ${
+            !disponible ? "grayscale-[35%] opacity-90" : ""
+          }`}
         />
         {p.badge && (
           <span className="absolute top-3 left-3 badge-altum">{p.badge}</span>
         )}
-        {p.operation === "renta" && (
+        {/* Sello de estado cuando NO está disponible */}
+        {estadoLabel && (
+          <span className="absolute top-3 right-3 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-primary/90 text-primary-foreground rounded-sm">
+            {estadoLabel}
+          </span>
+        )}
+        {disponible && p.operation === "renta" && (
           <span className="absolute top-3 right-3 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-primary text-primary-foreground rounded-sm">
             Renta
           </span>
@@ -45,14 +59,20 @@ export function PropertyCard({ p }: { p: Property }) {
           >
             Ver detalles
           </Link>
-          <a
-            href="https://wa.me/50251014866"
-            target="_blank"
-            rel="noreferrer"
-            className="text-center text-xs font-semibold uppercase tracking-wider py-2.5 bg-secondary text-primary rounded-sm hover:bg-secondary/85 transition-colors"
-          >
-            Contactar
-          </a>
+          {disponible ? (
+            <a
+              href={ALTUM_WA}
+              target="_blank"
+              rel="noreferrer"
+              className="text-center text-xs font-semibold uppercase tracking-wider py-2.5 bg-secondary text-primary rounded-sm hover:bg-secondary/85 transition-colors"
+            >
+              Contactar
+            </a>
+          ) : (
+            <span className="text-center text-[11px] font-medium uppercase tracking-wider py-2.5 text-muted-foreground border border-border rounded-sm">
+              No disponible
+            </span>
+          )}
         </div>
       </div>
     </article>
