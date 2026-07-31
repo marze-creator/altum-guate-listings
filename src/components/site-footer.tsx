@@ -4,7 +4,7 @@ import logo from "@/assets/altum-logo.png";
 
 const FB_URL = "https://www.facebook.com/profile.php?id=61589836941143";
 const IG_URL = "https://www.instagram.com/altumgroupgt/";
-const WHATSAPP_URL = "https://wa.me/50251014866";
+const WHATSAPP_URL = "https://wa.me/50241042250";
 const EMAIL = "info@altumgroup.com.gt";
 
 export function SiteFooter() {
