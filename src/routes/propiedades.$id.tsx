@@ -69,6 +69,8 @@ function PropertyDetail() {
   }
 
   const images = p.images && p.images.length ? p.images : [p.image];
+  const disponible = !(p as any).status || (p as any).status === "published";
+  const estadoCerrado = (p as any).status === "sold" ? "sold" : (p as any).status === "rented" ? "rented" : null;
 
   return (
     <div className="container-altum py-10">
@@ -124,19 +126,45 @@ function PropertyDetail() {
                 </div>
               </div>
             </div>
-            <a href="https://wa.me/50241042250" target="_blank" rel="noreferrer" className="mt-4 block text-center py-3 bg-secondary text-primary font-semibold text-sm uppercase tracking-wider rounded-sm hover:bg-secondary/85">
-              Contactar por WhatsApp
-            </a>
-            <button onClick={downloadPDF} className="mt-2 w-full inline-flex items-center justify-center gap-2 py-3 border border-primary text-primary font-semibold text-sm uppercase tracking-wider rounded-sm hover:bg-primary hover:text-white transition-colors">
-              <Download size={14} /> Descargar PDF
-            </button>
+            {disponible ? (
+              <>
+                <a href="https://wa.me/50241042250" target="_blank" rel="noreferrer" className="mt-4 block text-center py-3 bg-secondary text-primary font-semibold text-sm uppercase tracking-wider rounded-sm hover:bg-secondary/85">
+                  Contactar por WhatsApp
+                </a>
+                <button onClick={downloadPDF} className="mt-2 w-full inline-flex items-center justify-center gap-2 py-3 border border-primary text-primary font-semibold text-sm uppercase tracking-wider rounded-sm hover:bg-primary hover:text-white transition-colors">
+                  <Download size={14} /> Descargar PDF
+                </button>
+              </>
+            ) : (
+              <div className="mt-4 space-y-3">
+                <div className="rounded-sm border border-border bg-muted/60 px-4 py-3 text-center">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Esta propiedad ya no está disponible ({estadoCerrado})
+                  </p>
+                </div>
+                <Link
+                  to="/propiedades"
+                  className="block text-center py-3 bg-secondary text-primary font-semibold text-sm uppercase tracking-wider rounded-sm hover:bg-secondary/85"
+                >
+                  Ver propiedades disponibles
+                </Link>
+                <a
+                  href="https://wa.me/50241042250?text=Hola%20ALTUM,%20vi%20una%20propiedad%20que%20ya%20no%20está%20disponible%20y%20busco%20algo%20similar"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block text-center py-3 border border-primary text-primary font-semibold text-sm uppercase tracking-wider rounded-sm hover:bg-primary hover:text-white transition-colors"
+                >
+                  Busco algo similar
+                </a>
+              </div>
+            )}
           </div>
 
-          <InquiryForm propertyId={p.id} propertyTitle={p.title} />
+          {disponible && <InquiryForm propertyId={p.id} propertyTitle={p.title} />}
         </aside>
       </div>
 
-      <Cotizador price={p.price} operation={p.operation} currency={p.currency} />
+      {disponible && <Cotizador price={p.price} operation={p.operation} currency={p.currency} />}
 
 
       <div className="mt-16 grid gap-12 lg:grid-cols-2">
