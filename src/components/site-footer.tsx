@@ -79,7 +79,7 @@ function FooterContact() {
         <li className="flex items-center gap-2">
           <Phone size={16} className="text-secondary" />
           <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" className="hover:text-secondary">
-            +502 5101-4866
+            +502 4104-2250
           </a>
         </li>
         <li className="flex items-center gap-2">
