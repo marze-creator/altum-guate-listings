@@ -8,7 +8,7 @@ const NAVY = [28, 33, 53] as const;        // #1C2135
 const GOLD = [201, 169, 110] as const;      // #C9A96E
 const CREAM = [248, 242, 230] as const;     // pale gold/cream
 const FOOTER_NAVY = [19, 25, 41] as const;  // #131929
-const WHATSAPP_CORP = "50251014866";
+const WHATSAPP_CORP = "50241042250";
 const SITE_URL = "https://altumgroup.com.gt";
 
 interface PropertyExtra {
