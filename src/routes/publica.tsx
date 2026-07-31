@@ -20,7 +20,7 @@ export const Route = createFileRoute("/publica")({
 });
 
 // WhatsApp del equipo ALTUM (sin +, solo dígitos)
-const ALTUM_WHATSAPP = "50251014866";
+const ALTUM_WHATSAPP = "50241042250";
 
 const schema = z.object({
   contact_name: z.string().trim().min(2, "Nombre muy corto").max(120),
