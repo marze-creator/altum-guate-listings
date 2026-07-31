@@ -239,7 +239,7 @@ function TasacionPage() {
         <div className="mt-12 text-center">
           <p className="text-sm text-muted-foreground">
             Tenes dudas antes de solicitar?{" "}
-            <a href="https://wa.me/50251014866" target="_blank" rel="noreferrer" className="text-primary hover:text-secondary font-semibold">Conversemos por WhatsApp</a>
+            <a href="https://wa.me/50241042250" target="_blank" rel="noreferrer" className="text-primary hover:text-secondary font-semibold">Conversemos por WhatsApp</a>
           </p>
         </div>
       </section>
