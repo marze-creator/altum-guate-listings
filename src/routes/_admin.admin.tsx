@@ -66,7 +66,7 @@ function AdminPage() {
       }
       setRequests(rows);
     } else {
-      let q = supabase.from("properties").select("id,title,price,zone,status,operation,cover_image,created_at").order("created_at", { ascending: false }).limit(100);
+      let q = supabase.from("properties").select("id,title,price,zone,status,operation,cover_image,created_at,views,pdf_downloads").order("created_at", { ascending: false }).limit(200);
       if (tab === "pending") q = q.in("status", ["pending", "draft"]);
       const { data } = await q;
       setProps((data as PendingProp[]) ?? []);
@@ -81,10 +81,16 @@ function AdminPage() {
     load();
   }
 
-  async function setStatus(id: string, status: "published" | "draft") {
+  async function setStatus(id: string, status: "published" | "draft" | "sold" | "rented") {
     const { error } = await supabase.from("properties").update({ status }).eq("id", id);
     if (error) return toast.error(error.message);
-    toast.success(status === "published" ? "Publicada" : "Devuelta a borrador");
+    const msg: Record<string, string> = {
+      published: "Publicada",
+      draft: "Devuelta a borrador",
+      sold: "Marcada como vendida",
+      rented: "Marcada como rentada",
+    };
+    toast.success(msg[status] ?? "Actualizada");
     load();
   }
   async function markContacted(id: string, v: boolean) {
@@ -302,6 +308,8 @@ function AdminPage() {
                       <span className={`text-xs px-2 py-1 rounded-sm ${
                         p.status === "published" ? "bg-green-100 text-green-800" :
                         p.status === "pending" ? "bg-amber-100 text-amber-800" :
+                        p.status === "sold" ? "bg-rose-100 text-rose-800" :
+                        p.status === "rented" ? "bg-indigo-100 text-indigo-800" :
                         "bg-gray-100 text-gray-700"
                       }`}>{p.status}</span>
                     </td>
@@ -309,15 +317,17 @@ function AdminPage() {
                     <td className="p-4">
                       <div className="flex justify-end gap-2">
                         <Link to="/propiedades/$id" params={{ id: p.id }} className="p-2 hover:bg-muted rounded-sm"><Eye size={14} /></Link>
-                        {p.status !== "published" ? (
-                          <button onClick={() => setStatus(p.id, "published")} className="inline-flex items-center gap-1 text-xs px-3 py-1.5 bg-secondary text-primary font-semibold rounded-sm">
-                            <CheckCircle2 size={12} /> Aprobar
-                          </button>
-                        ) : (
-                          <button onClick={() => setStatus(p.id, "draft")} className="inline-flex items-center gap-1 text-xs px-3 py-1.5 border border-border rounded-sm">
-                            <XCircle size={12} /> Despublicar
-                          </button>
-                        )}
+                        <select
+                          value={["published","draft","sold","rented"].includes(p.status) ? p.status : "draft"}
+                          onChange={(e) => setStatus(p.id, e.target.value as "published" | "draft" | "sold" | "rented")}
+                          className="text-xs px-2 py-1.5 border border-border rounded-sm bg-background"
+                          aria-label="Cambiar estado"
+                        >
+                          <option value="published">Publicada</option>
+                          <option value="draft">Borrador</option>
+                          <option value="sold">Vendida (sold)</option>
+                          <option value="rented">Rentada (rented)</option>
+                        </select>
                       </div>
                     </td>
                   </tr>
