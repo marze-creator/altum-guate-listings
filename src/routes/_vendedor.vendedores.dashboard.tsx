@@ -92,6 +92,19 @@ function Dashboard() {
     load();
   }
 
+  async function setStatus(id: string, status: "published" | "draft" | "sold" | "rented") {
+    const { error } = await supabase.from("properties").update({ status }).eq("id", id);
+    if (error) return toast.error(error.message);
+    const msg: Record<string, string> = {
+      published: "Publicada",
+      draft: "Devuelta a borrador",
+      sold: "Marcada como vendida",
+      rented: "Marcada como rentada",
+    };
+    toast.success(msg[status] ?? "Actualizada");
+    load();
+  }
+
   const published = props.filter((p) => p.status === "published");
   const sale = published.filter((p) => p.operation === "venta");
   const rent = published.filter((p) => p.operation === "renta");
@@ -120,6 +133,8 @@ function Dashboard() {
   function statusBadgeClass(status: string) {
     if (status === "published") return "text-xs px-2 py-1 rounded-sm bg-green-100 text-green-800";
     if (status === "pending") return "text-xs px-2 py-1 rounded-sm bg-amber-100 text-amber-800";
+    if (status === "sold") return "text-xs px-2 py-1 rounded-sm bg-rose-100 text-rose-800";
+    if (status === "rented") return "text-xs px-2 py-1 rounded-sm bg-indigo-100 text-indigo-800";
     return "text-xs px-2 py-1 rounded-sm bg-gray-100 text-gray-700";
   }
 
@@ -315,6 +330,17 @@ function Dashboard() {
                       <Link to="/vendedores/propiedades/$id/editar" params={{ id: p.id }} className="p-2 hover:bg-muted rounded-sm" aria-label="Editar">
                         <Edit size={16} />
                       </Link>
+                      <select
+                        value={["published","draft","sold","rented"].includes(p.status) ? p.status : "draft"}
+                        onChange={(e) => setStatus(p.id, e.target.value as "published" | "draft" | "sold" | "rented")}
+                        className="text-xs px-2 py-1.5 border border-border rounded-sm bg-background"
+                        aria-label="Cambiar estado"
+                      >
+                        <option value="published">Publicada</option>
+                        <option value="draft">Borrador</option>
+                        <option value="sold">Vendida</option>
+                        <option value="rented">Rentada</option>
+                      </select>
                       <button onClick={() => remove(p.id)} className="p-2 hover:bg-muted rounded-sm text-red-600" aria-label="Eliminar">
                         <Trash2 size={16} />
                       </button>
