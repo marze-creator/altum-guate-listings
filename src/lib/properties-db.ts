@@ -72,13 +72,21 @@ export function dbToUI(p: DBProperty, images?: string[]): Property & { images: s
 }
 
 export async function fetchPublishedProperties() {
+  // Muestra disponibles + vendidas/rentadas (prueba social).
+  // Las sold/rented se ven en la web pero Andrea no las ofrece (ella carga solo "published").
   const { data, error } = await supabase
     .from("properties")
     .select("*")
-    .eq("status", "published")
+    .in("status", ["published", "sold", "rented"])
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data as DBProperty[]).map((p) => dbToUI(p));
+  const rows = (data as DBProperty[]).map((p) => dbToUI(p));
+  // Disponibles primero; vendidas/rentadas al final
+  return rows.sort((a, b) => {
+    const av = a.status === "published" ? 0 : 1;
+    const bv = b.status === "published" ? 0 : 1;
+    return av - bv;
+  });
 }
 
 export async function fetchPropertyById(id: string) {
