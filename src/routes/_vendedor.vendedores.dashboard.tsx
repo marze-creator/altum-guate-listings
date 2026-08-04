@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, Eye, LogOut, ShieldCheck, MailCheck, MailWarning, Clock, CheckCircle2, XCircle, Columns3, CalendarDays, CircleDollarSign } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, LogOut, ShieldCheck, MailCheck, MailWarning, Clock, CheckCircle2, XCircle, Columns3, CalendarDays, CircleDollarSign, Star } from "lucide-react";
 
 export const Route = createFileRoute("/_vendedor/vendedores/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — ALTUM GROUP" }, { name: "robots", content: "noindex" }] }),
@@ -22,6 +22,7 @@ interface Prop {
   operation: string;
   views: number;
   cover_image: string | null;
+  featured: boolean;
 }
 
 function Dashboard() {
@@ -45,7 +46,7 @@ function Dashboard() {
     setLoading(true);
     const { data, error } = await supabase
       .from("properties")
-      .select("id,title,price,currency,zone,status,operation,views,cover_image")
+      .select("id,title,price,currency,zone,status,operation,views,cover_image,featured")
       .eq("owner_id", user!.id)
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
@@ -89,6 +90,21 @@ function Dashboard() {
     const { error } = await supabase.from("properties").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Propiedad eliminada");
+    load();
+  }
+
+  const MAX_DESTACADAS = 6;
+  async function toggleFeatured(id: string, current: boolean) {
+    if (!current) {
+      const activas = props.filter((x) => x.featured).length;
+      if (activas >= MAX_DESTACADAS) {
+        toast.error(`Máximo ${MAX_DESTACADAS} destacadas. Quita una antes de agregar otra.`);
+        return;
+      }
+    }
+    const { error } = await supabase.from("properties").update({ featured: !current }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success(!current ? "Destacada en la portada" : "Quitada de destacadas");
     load();
   }
 
@@ -327,6 +343,14 @@ function Dashboard() {
                       <Link to="/propiedades/$id" params={{ id: p.id }} className="p-2 hover:bg-muted rounded-sm" aria-label="Ver">
                         <Eye size={16} />
                       </Link>
+                      <button
+                        onClick={() => toggleFeatured(p.id, p.featured)}
+                        className={`p-2 hover:bg-muted rounded-sm ${p.featured ? "text-amber-500" : "text-muted-foreground"}`}
+                        title={p.featured ? "Destacada (clic para quitar)" : "Destacar en portada"}
+                        aria-label={p.featured ? "Quitar de destacadas" : "Destacar en portada"}
+                      >
+                        <Star size={16} fill={p.featured ? "currentColor" : "none"} />
+                      </button>
                       <Link to="/vendedores/propiedades/$id/editar" params={{ id: p.id }} className="p-2 hover:bg-muted rounded-sm" aria-label="Editar">
                         <Edit size={16} />
                       </Link>
