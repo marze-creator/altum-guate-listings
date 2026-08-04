@@ -149,7 +149,9 @@ function PropertyDetail() {
                   Ver propiedades disponibles
                 </Link>
                 <a
-                  href="https://wa.me/50241042250?text=Hola%20ALTUM,%20vi%20una%20propiedad%20que%20ya%20no%20está%20disponible%20y%20busco%20algo%20similar"
+                  href={`https://wa.me/50241042250?text=${encodeURIComponent(
+                    `Hola ALTUM, vi esta propiedad que ya no está disponible y busco algo similar:\n\n${p.title}\n${typeof window !== "undefined" ? window.location.href : ""}`
+                  )}`}
                   target="_blank"
                   rel="noreferrer"
                   className="block text-center py-3 border border-primary text-primary font-semibold text-sm uppercase tracking-wider rounded-sm hover:bg-primary hover:text-white transition-colors"
