@@ -4,6 +4,8 @@ export const ZONAS_CIUDAD = Array.from({ length: 25 }, (_, i) => `Zona ${i + 1}`
 
 export const MUNICIPIOS_FRECUENTES = [
   "San José Pinula",
+  "Mixco",
+  "San Cfistobal Z8 Mixco",
   "Santa Catarina Pinula",
   "Fraijanes",
   "San Lucas Sacatepéquez",
