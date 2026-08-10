@@ -19,6 +19,7 @@ import {
   CalendarDays,
   ChevronDown,
   CircleDollarSign,
+  ExternalLink,
   MessageCircle,
   Phone,
   Plus,
@@ -41,6 +42,13 @@ import {
 } from "@/lib/crm";
 
 type PropertyOption = { id: string; title: string; zone: string; price: number; currency: string | null; operation: string };
+type WhatsAppMessage = {
+  id: string;
+  lead_id: string | null;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+};
 
 export const Route = createFileRoute("/_vendedor/vendedores/crm")({
   head: () => ({ meta: [{ title: "CRM — ALTUM GROUP" }, { name: "robots", content: "noindex" }] }),
@@ -94,8 +102,7 @@ function CrmPage() {
       db.from("properties").select("id,title,zone,price,currency,operation").order("created_at", { ascending: false }).limit(200),
       db
         .from("deals")
-        .select("id,title,status,stage_id,lead_id,property_id,assigned_to_user_id,deal_value,currency,commission_rate,commission_total,advisor_commission_rate,commission_advisor,commission_company,next_activity_at,temperature,created_at,leads(id,full_name,phone,email,source,lead_kind,interest_operation,interest_type,interest_zone,budget_min,budget_max,currency,notes,temperature,status,next_follow_up_at),properties(id,title,zone,price,currency,operation,cover_image),deal_stages(id,name,slug,position,probability,color,is_won,is_lost)")
-
+        .select("id,title,status,stage_id,lead_id,property_id,assigned_to_user_id,deal_value,currency,commission_rate,commission_total,advisor_commission_rate,commission_advisor,commission_company,next_activity_at,temperature,created_at,leads(id,full_name,phone,email,source,lead_kind,interest_operation,interest_type,interest_zone,budget_min,budget_max,currency,notes,temperature,status,next_follow_up_at,property_id,ad_id,ad_headline,ad_source_url,ad_source_type,ad_ctwa_clid,ad_referral),properties(id,title,zone,price,currency,operation,cover_image),deal_stages(id,name,slug,position,probability,color,is_won,is_lost)")
         .order("created_at", { ascending: false })
         .limit(300),
     ]);
@@ -107,7 +114,6 @@ function CrmPage() {
     setProperties((propertyRows ?? []) as PropertyOption[]);
     setDeals((dealRows ?? []) as CrmDeal[]);
 
-    // Load vendor names for assigned_to_user_id display and admin filter
     const assignedIds = Array.from(
       new Set(((dealRows ?? []) as CrmDeal[]).map((d) => d.assigned_to_user_id).filter(Boolean) as string[]),
     );
@@ -147,7 +153,7 @@ function CrmPage() {
     return scopedDeals.filter((deal) => {
       const lead = deal.leads;
       const prop = deal.properties;
-      return [deal.title, lead?.full_name, lead?.phone, lead?.interest_zone, prop?.title, prop?.zone]
+      return [deal.title, lead?.full_name, lead?.phone, lead?.interest_zone, lead?.ad_headline, prop?.title, prop?.zone]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(q));
     });
@@ -509,6 +515,9 @@ function DealDetail({
 }) {
   const [activities, setActivities] = useState<CrmActivity[]>([]);
   const [loadingAct, setLoadingAct] = useState(true);
+  const [messages, setMessages] = useState<WhatsAppMessage[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(true);
+  const [chatError, setChatError] = useState<string | null>(null);
   const [type, setType] = useState<string>("llamada");
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
@@ -517,8 +526,9 @@ function DealDetail({
 
   useEffect(() => {
     loadActivities();
+    loadMessages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deal.id]);
+  }, [deal.id, deal.lead_id]);
 
   async function loadActivities() {
     setLoadingAct(true);
@@ -531,6 +541,24 @@ function DealDetail({
     if (error) toast.error("Actividades: " + error.message);
     setActivities((data ?? []) as CrmActivity[]);
     setLoadingAct(false);
+  }
+
+  async function loadMessages() {
+    setLoadingMessages(true);
+    setChatError(null);
+    const { data, error } = await (supabase as any)
+      .from("wa_messages")
+      .select("id,lead_id,role,content,created_at")
+      .eq("lead_id", deal.lead_id)
+      .order("created_at", { ascending: true })
+      .limit(300);
+    if (error) {
+      setMessages([]);
+      setChatError(error.message);
+    } else {
+      setMessages((data ?? []) as WhatsAppMessage[]);
+    }
+    setLoadingMessages(false);
   }
 
   async function addActivity() {
@@ -560,6 +588,7 @@ function DealDetail({
   const lead = deal.leads;
   const property = deal.properties;
   const wa = lead?.phone?.replace(/\D/g, "");
+  const hasAdAttribution = Boolean(lead?.ad_id || lead?.ad_headline || lead?.ad_source_url);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={onClose}>
@@ -587,6 +616,43 @@ function DealDetail({
             <InfoRow label="Zona" value={lead?.interest_zone ?? property?.zone ?? "—"} />
             <InfoRow label="Propiedad" value={property?.title ?? "—"} />
             <InfoRow label="Valor" value={money(deal.deal_value, deal.currency ?? "GTQ")} />
+          </section>
+
+          <section className="border border-border rounded-sm p-4 bg-card">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <h3 className="font-display text-primary text-lg">Origen del lead</h3>
+                <p className="text-xs text-muted-foreground mt-1">Canal y atribución publicitaria capturada al iniciar la conversación.</p>
+              </div>
+              {hasAdAttribution && (
+                <span className="inline-flex items-center rounded-full border border-secondary/50 bg-secondary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
+                  Publicidad Meta
+                </span>
+              )}
+            </div>
+            <div className="mt-3 grid sm:grid-cols-2 gap-3 text-sm">
+              <InfoRow label="Canal" value={lead?.source ?? "—"} />
+              <InfoRow label="Tipo de origen" value={lead?.ad_source_type ?? (hasAdAttribution ? "ad" : "Orgánico / sin atribución")} />
+            </div>
+            {hasAdAttribution ? (
+              <div className="mt-3 rounded-sm border border-border bg-background p-3">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Anuncio</p>
+                <p className="text-sm font-semibold text-primary mt-1">{lead?.ad_headline ?? "Anuncio de Meta"}</p>
+                {lead?.ad_id && <p className="text-xs text-muted-foreground mt-1 break-all">ID: {lead.ad_id}</p>}
+                {lead?.ad_source_url && (
+                  <a
+                    href={lead.ad_source_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary underline underline-offset-4"
+                  >
+                    Ver anuncio <ExternalLink size={12} />
+                  </a>
+                )}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-muted-foreground">Sin atribución de anuncio registrada para este lead.</p>
+            )}
           </section>
 
           <section className="flex flex-wrap gap-2">
@@ -648,6 +714,53 @@ function DealDetail({
             </div>
           </section>
 
+          <section className="border border-border rounded-sm bg-card overflow-hidden">
+            <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-display text-primary text-lg">Conversación WhatsApp</h3>
+                <p className="text-xs text-muted-foreground">Historial entre el cliente y Andrea.</p>
+              </div>
+              <button
+                type="button"
+                onClick={loadMessages}
+                disabled={loadingMessages}
+                className="inline-flex items-center gap-1.5 h-8 px-2.5 border border-border rounded-sm text-xs hover:bg-muted disabled:opacity-50"
+              >
+                <RefreshCw size={13} className={loadingMessages ? "animate-spin" : ""} /> Actualizar chat
+              </button>
+            </div>
+            <div className="p-4 bg-muted/20 max-h-[520px] overflow-y-auto">
+              {loadingMessages ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">Cargando conversación…</p>
+              ) : chatError ? (
+                <div className="rounded-sm border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  No fue posible cargar el chat: {chatError}
+                </div>
+              ) : messages.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">Aún no hay mensajes de WhatsApp enlazados a este lead.</p>
+              ) : (
+                <div className="space-y-3">
+                  {messages.map((message) => {
+                    const fromAndrea = message.role === "assistant";
+                    return (
+                      <div key={message.id} className={`flex ${fromAndrea ? "justify-end" : "justify-start"}`}>
+                        <div className={`max-w-[88%] sm:max-w-[78%] rounded-lg px-3 py-2 shadow-sm ${fromAndrea ? "bg-primary text-white" : "bg-background border border-border text-primary"}`}>
+                          <p className={`text-[11px] font-semibold mb-1 ${fromAndrea ? "text-secondary" : "text-muted-foreground"}`}>
+                            {fromAndrea ? "Andrea · ALTUM" : (lead?.full_name ?? "Cliente")}
+                          </p>
+                          <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                          <p className={`text-[10px] mt-1.5 ${fromAndrea ? "text-white/65" : "text-muted-foreground"}`}>
+                            {safeDate(message.created_at)}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+
           <section>
             <h3 className="font-display text-primary text-lg mb-3">Línea de tiempo</h3>
             {loadingAct ? (
@@ -688,7 +801,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className="text-primary">{value}</p>
+      <p className="text-primary break-words">{value}</p>
     </div>
   );
 }
