@@ -41,8 +41,14 @@ export interface CrmLead {
   temperature: "frio" | "tibio" | "caliente" | string;
   status: string;
   next_follow_up_at: string | null;
+  property_id: string | null;
+  ad_id: string | null;
+  ad_headline: string | null;
+  ad_source_url: string | null;
+  ad_source_type: string | null;
+  ad_ctwa_clid: string | null;
+  ad_referral: Record<string, unknown> | null;
 }
-
 
 export interface CrmPropertyMini {
   id: string;
