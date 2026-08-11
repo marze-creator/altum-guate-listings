@@ -147,7 +147,10 @@ function AgendaPage() {
         <AgendaDealDetail
           dealId={openContext.dealId}
           activityId={openContext.activityId}
-          onClose={() => setOpenContext(null)}
+          onClose={() => {
+            setOpenContext(null);
+            load();
+          }}
           onActivityCompleted={handleActivityCompleted}
         />
       )}
