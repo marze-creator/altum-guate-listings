@@ -86,9 +86,8 @@ function AgendaPage() {
     today.setHours(23, 59, 59, 999);
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
-    const now = new Date();
     return {
-      overdue: activities.filter((item) => item.status !== "completada" && item.due_at && new Date(item.due_at) < now),
+      overdue: activities.filter((item) => item.status !== "completada" && item.due_at && new Date(item.due_at) < startOfToday),
       today: activities.filter((item) => item.status !== "completada" && item.due_at && new Date(item.due_at) <= today && new Date(item.due_at) >= startOfToday),
       upcoming: activities.filter((item) => item.status !== "completada" && (!item.due_at || new Date(item.due_at) > today)),
       done: activities.filter((item) => item.status === "completada"),
