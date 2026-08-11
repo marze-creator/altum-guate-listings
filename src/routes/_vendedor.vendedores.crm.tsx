@@ -366,6 +366,7 @@ function CrmPage() {
           stages={stages}
           onClose={() => setDetailDealId(null)}
           onMove={moveDeal}
+          onRefresh={load}
           userId={user?.id ?? null}
         />
       )}
@@ -505,12 +506,14 @@ function DealDetail({
   stages,
   onClose,
   onMove,
+  onRefresh,
   userId,
 }: {
   deal: CrmDeal;
   stages: CrmStage[];
   onClose: () => void;
   onMove: (dealId: string, stageId: string) => void;
+  onRefresh: () => void | Promise<void>;
   userId: string | null;
 }) {
   const [activities, setActivities] = useState<CrmActivity[]>([]);
@@ -518,13 +521,26 @@ function DealDetail({
   const [messages, setMessages] = useState<WhatsAppMessage[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [chatError, setChatError] = useState<string | null>(null);
-  const [type, setType] = useState<string>("llamada");
-  const [title, setTitle] = useState("");
-  const [notes, setNotes] = useState("");
-  const [dueAt, setDueAt] = useState("");
-  const [saving, setSaving] = useState(false);
+
+  const [activityType, setActivityType] = useState<string>("llamada");
+  const [activityTitle, setActivityTitle] = useState("");
+  const [activityNotes, setActivityNotes] = useState("");
+  const [savingActivity, setSavingActivity] = useState(false);
+
+  const [futureType, setFutureType] = useState<string>("seguimiento");
+  const [futureDueAt, setFutureDueAt] = useState("");
+  const [futureTitle, setFutureTitle] = useState("");
+  const [futureNotes, setFutureNotes] = useState("");
+  const [savingFuture, setSavingFuture] = useState(false);
 
   useEffect(() => {
+    setActivityType("llamada");
+    setActivityTitle("");
+    setActivityNotes("");
+    setFutureType("seguimiento");
+    setFutureDueAt("");
+    setFutureTitle("");
+    setFutureNotes("");
     loadActivities();
     loadMessages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -561,28 +577,70 @@ function DealDetail({
     setLoadingMessages(false);
   }
 
-  async function addActivity() {
+  async function addCompletedActivity() {
     if (!userId) return toast.error("Sesión expirada");
-    if (!title.trim() && !notes.trim()) return toast.error("Agrega un título o una nota");
-    setSaving(true);
+    if (!activityTitle.trim() && !activityNotes.trim()) return toast.error("Agrega un título o una nota");
+
+    setSavingActivity(true);
+    const completedAt = new Date().toISOString();
     const payload: Record<string, unknown> = {
       deal_id: deal.id,
       lead_id: deal.lead_id,
       assigned_to_user_id: userId,
       created_by: userId,
-      type,
-      title: title.trim() || `${type} con ${deal.leads?.full_name ?? "cliente"}`,
-      notes: notes.trim() || null,
-      due_at: dueAt ? new Date(dueAt).toISOString() : null,
+      type: activityType,
+      title: activityTitle.trim() || `${activityType} con ${deal.leads?.full_name ?? "cliente"}`,
+      notes: activityNotes.trim() || null,
+      status: "completada",
+      completed_at: completedAt,
+      due_at: null,
     };
+
     const { error } = await (supabase as any).from("activities").insert(payload);
-    setSaving(false);
+    setSavingActivity(false);
     if (error) return toast.error(error.message);
-    toast.success("Actividad registrada");
-    setTitle("");
-    setNotes("");
-    setDueAt("");
-    loadActivities();
+
+    toast.success("Actividad realizada registrada");
+    setActivityTitle("");
+    setActivityNotes("");
+    await loadActivities();
+  }
+
+  async function addFutureActivity() {
+    if (!userId) return toast.error("Sesión expirada");
+    if (!futureDueAt) return toast.error("Selecciona fecha y hora para la actividad futura");
+
+    const dueDate = new Date(futureDueAt);
+    if (Number.isNaN(dueDate.getTime())) return toast.error("La fecha seleccionada no es válida");
+    if (dueDate.getTime() <= Date.now()) return toast.error("La actividad futura debe quedar después de la hora actual");
+
+    setSavingFuture(true);
+    const payload: Record<string, unknown> = {
+      deal_id: deal.id,
+      lead_id: deal.lead_id,
+      assigned_to_user_id: userId,
+      created_by: userId,
+      type: futureType,
+      title: futureTitle.trim() || `${futureType} con ${deal.leads?.full_name ?? "cliente"}`,
+      notes: futureNotes.trim() || null,
+      status: "pendiente",
+      completed_at: null,
+      due_at: dueDate.toISOString(),
+    };
+
+    const { error } = await (supabase as any).from("activities").insert(payload);
+    if (error) {
+      setSavingFuture(false);
+      return toast.error(error.message);
+    }
+
+    toast.success("Actividad futura programada");
+    setFutureDueAt("");
+    setFutureTitle("");
+    setFutureNotes("");
+    await loadActivities();
+    await onRefresh();
+    setSavingFuture(false);
   }
 
   const lead = deal.leads;
@@ -678,38 +736,71 @@ function DealDetail({
           </section>
 
           <section className="border border-border rounded-sm p-4 bg-card">
-            <h3 className="font-display text-primary text-lg mb-3">Registrar actividad</h3>
+            <h3 className="font-display text-primary text-lg">Registrar actividad realizada</h3>
+            <p className="text-xs text-muted-foreground mt-1 mb-3">Guarda lo que acabas de hacer con el cliente. Queda completado en el historial y no entra como pendiente en Agenda.</p>
             <div className="grid sm:grid-cols-2 gap-3">
-              <select className="input-altum" value={type} onChange={(e) => setType(e.target.value)}>
+              <select className="input-altum" value={activityType} onChange={(e) => setActivityType(e.target.value)}>
+                {ACTIVITY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <div className="hidden sm:block" />
+              <input
+                className="input-altum sm:col-span-2"
+                placeholder="Título breve (ej. Llamé y confirmó interés)"
+                value={activityTitle}
+                onChange={(e) => setActivityTitle(e.target.value)}
+              />
+              <textarea
+                className="input-altum sm:col-span-2 min-h-[90px] py-2"
+                placeholder="Resultado / notas de lo realizado…"
+                value={activityNotes}
+                onChange={(e) => setActivityNotes(e.target.value)}
+              />
+            </div>
+            <div className="mt-3 flex justify-end">
+              <button
+                disabled={savingActivity}
+                onClick={addCompletedActivity}
+                className="h-10 px-4 bg-primary text-white rounded-sm font-semibold hover:bg-primary/90 disabled:opacity-60"
+              >
+                {savingActivity ? "Guardando…" : "Guardar actividad realizada"}
+              </button>
+            </div>
+          </section>
+
+          <section className="border border-secondary/60 rounded-sm p-4 bg-secondary/5">
+            <h3 className="font-display text-primary text-lg">Programar actividad futura</h3>
+            <p className="text-xs text-muted-foreground mt-1 mb-3">Crea el siguiente paso. Esta actividad queda pendiente y sí aparecerá en Agenda en la fecha y hora seleccionadas.</p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <select className="input-altum" value={futureType} onChange={(e) => setFutureType(e.target.value)}>
                 {ACTIVITY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
               <input
                 type="datetime-local"
                 className="input-altum"
-                value={dueAt}
-                onChange={(e) => setDueAt(e.target.value)}
-                placeholder="Fecha (opcional)"
+                value={futureDueAt}
+                onChange={(e) => setFutureDueAt(e.target.value)}
+                required
               />
               <input
                 className="input-altum sm:col-span-2"
-                placeholder="Título breve (ej. Llamé y agendamos visita)"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Título del siguiente paso (opcional)"
+                value={futureTitle}
+                onChange={(e) => setFutureTitle(e.target.value)}
               />
               <textarea
                 className="input-altum sm:col-span-2 min-h-[90px] py-2"
-                placeholder="Notas de la conversación / próximos pasos…"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Notas para el siguiente seguimiento (opcional)…"
+                value={futureNotes}
+                onChange={(e) => setFutureNotes(e.target.value)}
               />
             </div>
             <div className="mt-3 flex justify-end">
               <button
-                disabled={saving}
-                onClick={addActivity}
-                className="h-10 px-4 bg-primary text-white rounded-sm font-semibold hover:bg-primary/90 disabled:opacity-60"
+                disabled={savingFuture}
+                onClick={addFutureActivity}
+                className="h-10 px-4 bg-secondary text-primary rounded-sm font-semibold hover:bg-secondary/85 disabled:opacity-60"
               >
-                {saving ? "Guardando…" : "Guardar actividad"}
+                {savingFuture ? "Programando…" : "Programar actividad futura"}
               </button>
             </div>
           </section>
@@ -769,25 +860,30 @@ function DealDetail({
               <p className="text-sm text-muted-foreground">Aún no hay actividades registradas.</p>
             ) : (
               <ol className="relative border-l border-border ml-2 space-y-4">
-                {activities.map((a) => (
-                  <li key={a.id} className="ml-4">
-                    <span className="absolute -left-[7px] mt-1.5 h-3 w-3 rounded-full bg-secondary border border-primary" />
-                    <div className="bg-card border border-border rounded-sm p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="font-semibold text-primary text-sm flex items-center gap-2">
-                          <ActivityIcon type={a.type} />
-                          {a.title}
+                {activities.map((a) => {
+                  const completed = a.status === "completada";
+                  return (
+                    <li key={a.id} className="ml-4">
+                      <span className={`absolute -left-[7px] mt-1.5 h-3 w-3 rounded-full border border-primary ${completed ? "bg-green-500" : "bg-secondary"}`} />
+                      <div className="bg-card border border-border rounded-sm p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="font-semibold text-primary text-sm flex items-center gap-2">
+                            <ActivityIcon type={a.type} />
+                            {a.title}
+                          </p>
+                          <span className={`text-[11px] uppercase tracking-wider font-semibold ${completed ? "text-green-700" : "text-amber-700"}`}>
+                            {completed ? "completada" : (a.status ?? "pendiente")}
+                          </span>
+                        </div>
+                        {a.notes && <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{a.notes}</p>}
+                        <p className="text-[11px] text-muted-foreground mt-2">
+                          {a.type} · {safeDate(a.created_at)}
+                          {a.due_at ? ` · vence ${safeDate(a.due_at)}` : ""}
                         </p>
-                        <span className="text-[11px] uppercase tracking-wider text-muted-foreground">{a.type}</span>
                       </div>
-                      {a.notes && <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{a.notes}</p>}
-                      <p className="text-[11px] text-muted-foreground mt-2">
-                        {safeDate(a.created_at)}
-                        {a.due_at ? ` · vence ${safeDate(a.due_at)}` : ""}
-                      </p>
-                    </div>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ol>
             )}
           </section>
