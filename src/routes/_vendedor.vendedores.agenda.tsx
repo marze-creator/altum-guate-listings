@@ -1,10 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { CalendarPlus, CheckCircle2, Clock, Plus, RefreshCw } from "lucide-react";
 import { ACTIVITY_TYPES, CrmActivity, safeDate } from "@/lib/crm";
+import { AgendaDealDetail } from "@/components/agenda-deal-detail";
 
 export const Route = createFileRoute("/_vendedor/vendedores/agenda")({
   head: () => ({ meta: [{ title: "Agenda CRM — ALTUM GROUP" }, { name: "robots", content: "noindex" }] }),
@@ -17,6 +18,7 @@ function AgendaPage() {
   const [deals, setDeals] = useState<{ id: string; title: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [openContext, setOpenContext] = useState<{ dealId: string; activityId: string } | null>(null);
   const [form, setForm] = useState({ title: "", type: "seguimiento", due_at: "", deal_id: "", notes: "" });
 
   useEffect(() => {
@@ -61,18 +63,32 @@ function AgendaPage() {
   }
 
   async function completeActivity(id: string) {
-    const { error } = await (supabase as any).from("activities").update({ status: "completada", completed_at: new Date().toISOString() }).eq("id", id);
-    if (error) return toast.error(error.message);
+    const completedAt = new Date().toISOString();
+    const previous = activities;
+    setActivities((rows) => rows.map((row) => row.id === id ? { ...row, status: "completada" } : row));
+    const { error } = await (supabase as any)
+      .from("activities")
+      .update({ status: "completada", completed_at: completedAt })
+      .eq("id", id);
+    if (error) {
+      setActivities(previous);
+      return toast.error(error.message);
+    }
     toast.success("Actividad completada");
-    load();
+  }
+
+  function handleActivityCompleted(id: string) {
+    setActivities((rows) => rows.map((row) => row.id === id ? { ...row, status: "completada" } : row));
   }
 
   const grouped = useMemo(() => {
     const today = new Date();
     today.setHours(23, 59, 59, 999);
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
     return {
-      overdue: activities.filter((item) => item.status !== "completada" && item.due_at && new Date(item.due_at) < new Date()),
-      today: activities.filter((item) => item.status !== "completada" && item.due_at && new Date(item.due_at) <= today && new Date(item.due_at) >= new Date(new Date().setHours(0, 0, 0, 0))),
+      overdue: activities.filter((item) => item.status !== "completada" && item.due_at && new Date(item.due_at) < startOfToday),
+      today: activities.filter((item) => item.status !== "completada" && item.due_at && new Date(item.due_at) <= today && new Date(item.due_at) >= startOfToday),
       upcoming: activities.filter((item) => item.status !== "completada" && (!item.due_at || new Date(item.due_at) > today)),
       done: activities.filter((item) => item.status === "completada"),
     };
@@ -121,10 +137,22 @@ function AgendaPage() {
 
       {loading ? <p className="text-center py-16 text-muted-foreground">Cargando agenda…</p> : (
         <div className="space-y-8">
-          <Section title="Vencidas" items={grouped.overdue} onComplete={completeActivity} empty="Sin tareas vencidas." />
-          <Section title="Hoy" items={grouped.today} onComplete={completeActivity} empty="Sin tareas para hoy." />
-          <Section title="Próximas" items={grouped.upcoming} onComplete={completeActivity} empty="Sin próximas tareas." />
+          <Section title="Vencidas" items={grouped.overdue} onComplete={completeActivity} onOpen={(item) => item.deal_id && setOpenContext({ dealId: item.deal_id, activityId: item.id })} empty="Sin tareas vencidas." />
+          <Section title="Hoy" items={grouped.today} onComplete={completeActivity} onOpen={(item) => item.deal_id && setOpenContext({ dealId: item.deal_id, activityId: item.id })} empty="Sin tareas para hoy." />
+          <Section title="Próximas" items={grouped.upcoming} onComplete={completeActivity} onOpen={(item) => item.deal_id && setOpenContext({ dealId: item.deal_id, activityId: item.id })} empty="Sin próximas tareas." />
         </div>
+      )}
+
+      {openContext && (
+        <AgendaDealDetail
+          dealId={openContext.dealId}
+          activityId={openContext.activityId}
+          onClose={() => {
+            setOpenContext(null);
+            load();
+          }}
+          onActivityCompleted={handleActivityCompleted}
+        />
       )}
     </div>
   );
@@ -134,25 +162,60 @@ function Metric({ label, value, danger }: { label: string; value: string; danger
   return <div className="bg-card border border-border rounded-sm p-4"><p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p><p className={`font-display text-3xl mt-1 ${danger ? "text-red-700" : "text-primary"}`}>{value}</p></div>;
 }
 
-function Section({ title, items, onComplete, empty }: { title: string; items: CrmActivity[]; onComplete: (id: string) => void; empty: string }) {
+function Section({
+  title,
+  items,
+  onComplete,
+  onOpen,
+  empty,
+}: {
+  title: string;
+  items: CrmActivity[];
+  onComplete: (id: string) => void;
+  onOpen: (item: CrmActivity) => void;
+  empty: string;
+}) {
   return (
     <div>
       <h2 className="font-display text-xl text-primary mb-3">{title}</h2>
       <div className="bg-card border border-border rounded-sm overflow-hidden">
-        {items.length === 0 ? <p className="p-8 text-center text-muted-foreground text-sm">{empty}</p> : items.map((item) => (
-          <div key={item.id} className="p-4 border-t first:border-t-0 border-border flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="font-semibold text-primary flex items-center gap-2"><Clock size={14} className="text-secondary" /> {item.title}</p>
-              <p className="text-xs text-muted-foreground mt-1">{item.type} · {safeDate(item.due_at)} {item.leads?.full_name ? `· ${item.leads.full_name}` : ""}</p>
-              {item.deals?.title && <p className="text-xs text-muted-foreground mt-1">Oportunidad: {item.deals.title}</p>}
-              {item.notes && <p className="text-sm text-primary/80 mt-2 whitespace-pre-line">{item.notes}</p>}
+        {items.length === 0 ? <p className="p-8 text-center text-muted-foreground text-sm">{empty}</p> : items.map((item) => {
+          const canOpen = Boolean(item.deal_id);
+          return (
+            <div
+              key={item.id}
+              role={canOpen ? "button" : undefined}
+              tabIndex={canOpen ? 0 : undefined}
+              onClick={() => canOpen && onOpen(item)}
+              onKeyDown={(event) => {
+                if (canOpen && (event.key === "Enter" || event.key === " ")) {
+                  event.preventDefault();
+                  onOpen(item);
+                }
+              }}
+              className={`p-4 border-t first:border-t-0 border-border flex items-start justify-between gap-4 transition-colors ${canOpen ? "cursor-pointer hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-secondary" : ""}`}
+            >
+              <div className="min-w-0">
+                <p className="font-semibold text-primary flex items-center gap-2"><Clock size={14} className="text-secondary" /> {item.title}</p>
+                <p className="text-xs text-muted-foreground mt-1">{item.type} · {safeDate(item.due_at)} {item.leads?.full_name ? `· ${item.leads.full_name}` : ""}</p>
+                {item.deals?.title && <p className="text-xs text-muted-foreground mt-1">Oportunidad: {item.deals.title}</p>}
+                {item.notes && <p className="text-sm text-primary/80 mt-2 whitespace-pre-line">{item.notes}</p>}
+                {canOpen && <p className="text-[11px] font-semibold text-secondary mt-2">Tocar para abrir la oportunidad</p>}
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onComplete(item.id);
+                  }}
+                  className="inline-flex items-center gap-1 text-xs px-3 py-1.5 bg-green-600 text-white rounded-sm"
+                >
+                  <CheckCircle2 size={12} /> Completar
+                </button>
+              </div>
             </div>
-            <div className="flex gap-2 shrink-0">
-              {item.deal_id && <Link to="/vendedores/crm" className="text-xs px-3 py-1.5 border border-border rounded-sm">Ver CRM</Link>}
-              <button onClick={() => onComplete(item.id)} className="inline-flex items-center gap-1 text-xs px-3 py-1.5 bg-green-600 text-white rounded-sm"><CheckCircle2 size={12} /> Completar</button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
