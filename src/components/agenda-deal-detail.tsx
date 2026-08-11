@@ -78,14 +78,21 @@ export function AgendaDealDetail({
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [type, setType] = useState("seguimiento");
-  const [title, setTitle] = useState("");
-  const [notes, setNotes] = useState("");
-  const [dueAt, setDueAt] = useState("");
+  const [resultNotes, setResultNotes] = useState("");
+  const [scheduleNext, setScheduleNext] = useState(false);
+  const [nextType, setNextType] = useState("seguimiento");
+  const [nextTitle, setNextTitle] = useState("");
+  const [nextNotes, setNextNotes] = useState("");
+  const [nextDueAt, setNextDueAt] = useState("");
   const [saving, setSaving] = useState(false);
-  const [completing, setCompleting] = useState(false);
 
   useEffect(() => {
+    setResultNotes("");
+    setScheduleNext(false);
+    setNextType("seguimiento");
+    setNextTitle("");
+    setNextNotes("");
+    setNextDueAt("");
     loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dealId, activityId]);
@@ -151,56 +158,74 @@ export function AgendaDealDetail({
     [activities, activityId],
   );
 
-  async function completeActivity(id: string, silent = false) {
-    if (completing) return false;
-    setCompleting(true);
-    const completedAt = new Date().toISOString();
-    const previous = activities;
-    setActivities((rows) => rows.map((row) => row.id === id ? { ...row, status: "completada", completed_at: completedAt } : row));
-    const { error: completeError } = await (supabase as any)
-      .from("activities")
-      .update({ status: "completada", completed_at: completedAt })
-      .eq("id", id);
-    setCompleting(false);
-    if (completeError) {
-      setActivities(previous);
-      toast.error(completeError.message);
-      return false;
-    }
-    onActivityCompleted(id);
-    if (!silent) toast.success("Actividad completada");
-    return true;
+  function notesWithResult(existingNotes: string | null | undefined, result: string) {
+    const cleanResult = result.trim();
+    if (!cleanResult) return existingNotes || null;
+    const cleanExisting = existingNotes?.trim();
+    return cleanExisting ? `${cleanExisting}\n\nResultado:\n${cleanResult}` : `Resultado:\n${cleanResult}`;
   }
 
-  async function addActivity() {
-    if (!deal || !user) return toast.error("Sesión expirada");
-    if (!title.trim() && !notes.trim()) return toast.error("Agrega un título o una nota");
+  async function saveResultAndComplete() {
+    if (!deal || !user || !currentActivity) return toast.error("No se encontró la actividad actual");
+    if (currentActivity.status === "completada") return;
+    if (scheduleNext && !nextDueAt) return toast.error("Agrega fecha y hora para el siguiente seguimiento");
+
     setSaving(true);
-    const payload = {
-      deal_id: deal.id,
-      lead_id: deal.lead_id,
-      assigned_to_user_id: user.id,
-      created_by: user.id,
-      type,
-      title: title.trim() || `${type} con ${deal.leads?.full_name ?? "cliente"}`,
-      notes: notes.trim() || null,
-      due_at: dueAt ? new Date(dueAt).toISOString() : null,
-    };
-    const { error: insertError } = await (supabase as any).from("activities").insert(payload);
-    if (insertError) {
+    const completedAt = new Date().toISOString();
+    const updatedNotes = notesWithResult(currentActivity.notes, resultNotes);
+    const previousActivities = activities;
+
+    setActivities((rows) => rows.map((row) => row.id === currentActivity.id ? {
+      ...row,
+      status: "completada",
+      completed_at: completedAt,
+      notes: updatedNotes,
+    } : row));
+
+    const { error: completeError } = await (supabase as any)
+      .from("activities")
+      .update({
+        status: "completada",
+        completed_at: completedAt,
+        notes: updatedNotes,
+      })
+      .eq("id", currentActivity.id);
+
+    if (completeError) {
+      setActivities(previousActivities);
       setSaving(false);
-      return toast.error(insertError.message);
+      return toast.error(completeError.message);
     }
 
-    if (currentActivity && currentActivity.status !== "completada") {
-      await completeActivity(currentActivity.id, true);
+    onActivityCompleted(currentActivity.id);
+
+    if (scheduleNext) {
+      const payload = {
+        deal_id: deal.id,
+        lead_id: deal.lead_id,
+        assigned_to_user_id: user.id,
+        created_by: user.id,
+        type: nextType,
+        title: nextTitle.trim() || `${nextType} con ${deal.leads?.full_name ?? "cliente"}`,
+        notes: nextNotes.trim() || null,
+        due_at: new Date(nextDueAt).toISOString(),
+      };
+      const { error: insertError } = await (supabase as any).from("activities").insert(payload);
+      if (insertError) {
+        setSaving(false);
+        await loadActivities(deal);
+        return toast.error("La actividad actual quedó completada, pero no se pudo programar el siguiente seguimiento: " + insertError.message);
+      }
     }
 
     setSaving(false);
-    toast.success(dueAt ? "Seguimiento registrado y actividad anterior completada" : "Actividad registrada");
-    setTitle("");
-    setNotes("");
-    setDueAt("");
+    toast.success(scheduleNext ? "Actividad completada y siguiente seguimiento programado" : "Actividad completada");
+    setResultNotes("");
+    setScheduleNext(false);
+    setNextType("seguimiento");
+    setNextTitle("");
+    setNextNotes("");
+    setNextDueAt("");
     await loadActivities(deal);
   }
 
@@ -245,14 +270,75 @@ export function AgendaDealDetail({
                     <p className="text-xs text-muted-foreground mt-1">{currentActivity.type} · {safeDate(currentActivity.due_at)}</p>
                     {currentActivity.notes && <p className="text-sm text-primary/80 mt-2 whitespace-pre-wrap">{currentActivity.notes}</p>}
                   </div>
-                  {currentActivity.status === "completada" ? (
+                  {currentActivity.status === "completada" && (
                     <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700"><CheckCircle2 size={14} /> Completada</span>
-                  ) : (
-                    <button disabled={completing} onClick={() => completeActivity(currentActivity.id)} className="inline-flex items-center gap-1.5 h-9 px-3 bg-green-600 text-white rounded-sm text-sm disabled:opacity-60">
-                      <CheckCircle2 size={14} /> Completar actividad
-                    </button>
                   )}
                 </div>
+
+                {currentActivity.status !== "completada" && (
+                  <div className="mt-4 space-y-4 border-t border-secondary/30 pt-4">
+                    <div>
+                      <label className="text-xs font-semibold text-primary">Resultado / comentario de lo realizado</label>
+                      <textarea
+                        className="input-altum mt-1 min-h-[88px] py-2"
+                        placeholder="Ej. Llamé al cliente, confirmó interés y pidió que le escribamos el jueves…"
+                        value={resultNotes}
+                        onChange={(event) => setResultNotes(event.target.value)}
+                      />
+                    </div>
+
+                    <label className="flex items-center gap-2 text-sm font-semibold text-primary cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={scheduleNext}
+                        onChange={(event) => setScheduleNext(event.target.checked)}
+                        className="h-4 w-4 accent-primary"
+                      />
+                      Programar siguiente seguimiento
+                    </label>
+
+                    {scheduleNext && (
+                      <div className="rounded-sm border border-border bg-background p-3">
+                        <p className="text-xs text-muted-foreground mb-3">Esta sí será una nueva actividad en Agenda.</p>
+                        <div className="grid sm:grid-cols-2 gap-3">
+                          <select className="input-altum" value={nextType} onChange={(event) => setNextType(event.target.value)}>
+                            {ACTIVITY_TYPES.map((activityType) => <option key={activityType} value={activityType}>{activityType}</option>)}
+                          </select>
+                          <input
+                            type="datetime-local"
+                            className="input-altum"
+                            value={nextDueAt}
+                            onChange={(event) => setNextDueAt(event.target.value)}
+                            required
+                          />
+                          <input
+                            className="input-altum sm:col-span-2"
+                            placeholder="Título del siguiente paso (opcional)"
+                            value={nextTitle}
+                            onChange={(event) => setNextTitle(event.target.value)}
+                          />
+                          <textarea
+                            className="input-altum sm:col-span-2 min-h-[76px] py-2"
+                            placeholder="Notas para el próximo seguimiento (opcional)"
+                            value={nextNotes}
+                            onChange={(event) => setNextNotes(event.target.value)}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex justify-end">
+                      <button
+                        disabled={saving}
+                        onClick={saveResultAndComplete}
+                        className="inline-flex items-center gap-1.5 h-10 px-4 bg-green-600 text-white rounded-sm text-sm font-semibold disabled:opacity-60"
+                      >
+                        <CheckCircle2 size={14} />
+                        {saving ? "Guardando…" : scheduleNext ? "Completar y programar siguiente" : "Guardar resultado y completar"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </section>
             )}
 
@@ -292,20 +378,6 @@ export function AgendaDealDetail({
                   {lead?.ad_source_url && <a href={lead.ad_source_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-primary underline underline-offset-4">Ver anuncio <ExternalLink size={12} /></a>}
                 </div>
               ) : <p className="mt-3 text-sm text-muted-foreground">Sin atribución de anuncio registrada.</p>}
-            </section>
-
-            <section className="border border-border rounded-sm p-4 bg-card">
-              <h3 className="font-display text-primary text-lg mb-1">Registrar resultado / próximo seguimiento</h3>
-              {currentActivity?.status !== "completada" && <p className="text-xs text-muted-foreground mb-3">Al guardar, la actividad actual se marcará automáticamente como completada.</p>}
-              <div className="grid sm:grid-cols-2 gap-3">
-                <select className="input-altum" value={type} onChange={(event) => setType(event.target.value)}>{ACTIVITY_TYPES.map((activityType) => <option key={activityType} value={activityType}>{activityType}</option>)}</select>
-                <input type="datetime-local" className="input-altum" value={dueAt} onChange={(event) => setDueAt(event.target.value)} />
-                <input className="input-altum sm:col-span-2" placeholder="Resultado o siguiente paso" value={title} onChange={(event) => setTitle(event.target.value)} />
-                <textarea className="input-altum sm:col-span-2 min-h-[90px] py-2" placeholder="Notas de la conversación / próximos pasos…" value={notes} onChange={(event) => setNotes(event.target.value)} />
-              </div>
-              <div className="mt-3 flex justify-end">
-                <button disabled={saving} onClick={addActivity} className="h-10 px-4 bg-primary text-white rounded-sm font-semibold hover:bg-primary/90 disabled:opacity-60">{saving ? "Guardando…" : "Guardar seguimiento"}</button>
-              </div>
             </section>
 
             <section className="border border-border rounded-sm bg-card overflow-hidden">
