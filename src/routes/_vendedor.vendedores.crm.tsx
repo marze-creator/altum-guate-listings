@@ -99,7 +99,7 @@ function CrmPage() {
 
     const [{ data: stageRows, error: stagesError }, { data: propertyRows }, { data: dealRows, error: dealsError }] = await Promise.all([
       db.from("deal_stages").select("id,name,slug,position,probability,color,is_won,is_lost").order("position", { ascending: true }),
-      db.from("properties").select("id,title,zone,price,currency,operation").order("created_at", { ascending: false }).limit(200),
+      db.from("properties").select("id,title,zone,price,currency,operation").eq("status", "published").order("created_at", { ascending: false }).limit(200),
       db
         .from("deals")
         .select("id,title,status,stage_id,lead_id,property_id,assigned_to_user_id,deal_value,currency,commission_rate,commission_total,advisor_commission_rate,commission_advisor,commission_company,next_activity_at,temperature,created_at,leads(id,full_name,phone,email,source,lead_kind,interest_operation,interest_type,interest_zone,budget_min,budget_max,currency,notes,temperature,status,next_follow_up_at,property_id,ad_id,ad_headline,ad_source_url,ad_source_type,ad_ctwa_clid,ad_referral),properties(id,title,zone,price,currency,operation,cover_image),deal_stages(id,name,slug,position,probability,color,is_won,is_lost)")
@@ -159,18 +159,15 @@ function CrmPage() {
     });
   }, [scopedDeals, query]);
 
-  const totals = useMemo(() => {
-    return scopedDeals.reduce(
-      (acc, deal) => {
-        if (deal.status === "perdido") return acc;
-        acc.count += 1;
-        acc.pipeline += Number(deal.deal_value || 0);
-        acc.commission += Number(deal.commission_advisor || 0);
-        return acc;
-      },
-      { count: 0, pipeline: 0, commission: 0 },
-    );
-  }, [scopedDeals]);
+  const activeDealCount = useMemo(
+    () => scopedDeals.filter((deal) => deal.status === "abierto").length,
+    [scopedDeals],
+  );
+
+  const inventoryValue = useMemo(
+    () => properties.reduce((sum, property) => sum + Number(property.price || 0), 0),
+    [properties],
+  );
 
   const detailDeal = useMemo(() => deals.find((d) => d.id === detailDealId) ?? null, [deals, detailDealId]);
   const activeDeal = useMemo(() => deals.find((d) => d.id === activeDealId) ?? null, [deals, activeDealId]);
@@ -272,9 +269,9 @@ function CrmPage() {
       </div>
 
       <div className="grid md:grid-cols-4 gap-4 mb-6">
-        <Metric label="Oportunidades" value={String(totals.count)} />
-        <Metric label="Pipeline estimado" value={money(totals.pipeline, "GTQ")} />
-        <Metric label="Comisión asesor est." value={money(totals.commission, "GTQ")} />
+        <Metric label="Leads en gestión" value={String(activeDealCount)} />
+        <Metric label="Propiedades disponibles" value={String(properties.length)} />
+        <Metric label="Valor inventario" value={money(inventoryValue, "GTQ")} />
         <Metric label="Vista" value={isAdmin ? "Admin" : "Asesor"} />
       </div>
 

@@ -14,27 +14,48 @@ interface Metrics {
   es_admin: boolean;
   leads: { total: number; calientes: number; tibios: number; frios: number; nuevos_semana: number; seguimientos_vencidos: number; de_whatsapp: number; de_web: number; manuales: number };
   propiedades: { total: number; publicadas: number; borradores: number; contenido_pendiente: number; contenido_generado: number };
-  pipeline: { total: number; valor_pipeline: number; comision_potencial: number };
-  comisiones: { total_potencial: number };
   contenido: { por_aprobar: number };
 }
 
+interface EarnedPerformance {
+  wonDeals: number;
+  earnedCommission: number;
+}
+
 function Metricas() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [m, setM] = useState<Metrics | null>(null);
+  const [performance, setPerformance] = useState<EarnedPerformance>({ wonDeals: 0, earnedCommission: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, isAdmin]);
 
   async function load() {
+    if (!user) return;
     setLoading(true);
-    const { data, error } = await (supabase.rpc as any)("get_dashboard_metrics");
-    if (error) toast.error(error.message);
-    setM((data as Metrics) ?? null);
+    const db = supabase as any;
+
+    let commissionsQuery = db.from("commissions").select("deal_id,amount,status");
+    if (!isAdmin) commissionsQuery = commissionsQuery.eq("advisor_user_id", user.id);
+
+    const [metricsResult, commissionsResult] = await Promise.all([
+      (supabase.rpc as any)("get_dashboard_metrics"),
+      commissionsQuery,
+    ]);
+
+    if (metricsResult.error) toast.error(metricsResult.error.message);
+    if (commissionsResult.error) toast.error("Comisiones: " + commissionsResult.error.message);
+
+    const commissionRows = (commissionsResult.data ?? []) as { deal_id: string | null; amount: number | string | null; status: string | null }[];
+    const wonDealIds = new Set(commissionRows.map((row) => row.deal_id).filter(Boolean) as string[]);
+    const earnedCommission = commissionRows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+
+    setM((metricsResult.data as Metrics) ?? null);
+    setPerformance({ wonDeals: wonDealIds.size, earnedCommission });
     setLoading(false);
   }
 
@@ -97,20 +118,21 @@ function Metricas() {
         </div>
         <div className="bg-card border border-border rounded-sm p-5">
           <Home className="text-secondary mb-2" size={22} />
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">Propiedades</p>
-          <p className="font-display text-3xl text-primary mt-1">{num(m.propiedades.total)}</p>
-          <p className="text-xs text-muted-foreground mt-1">{m.propiedades.publicadas} publicadas</p>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Propiedades disponibles</p>
+          <p className="font-display text-3xl text-primary mt-1">{num(m.propiedades.publicadas)}</p>
+          <p className="text-xs text-muted-foreground mt-1">{m.propiedades.total} registradas en total</p>
         </div>
         <div className="bg-card border border-border rounded-sm p-5">
           <TrendingUp className="text-secondary mb-2" size={22} />
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">Pipeline</p>
-          <p className="font-display text-2xl text-primary mt-1">{fmt(m.pipeline.valor_pipeline)}</p>
-          <p className="text-xs text-muted-foreground mt-1">{m.pipeline.total} negocio(s) activos</p>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Cierres ganados</p>
+          <p className="font-display text-3xl text-primary mt-1">{num(performance.wonDeals)}</p>
+          <p className="text-xs text-muted-foreground mt-1">Solo negocios que ya generaron comisión</p>
         </div>
         <div className="bg-card border border-border rounded-sm p-5">
           <CircleDollarSign className="text-secondary mb-2" size={22} />
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">Comisión potencial</p>
-          <p className="font-display text-2xl text-primary mt-1">{fmt(m.comisiones.total_potencial)}</p>
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">{m.es_admin ? "Comisión asesores generada" : "Comisión ganada"}</p>
+          <p className="font-display text-2xl text-primary mt-1">{fmt(performance.earnedCommission)}</p>
+          <p className="text-xs text-muted-foreground mt-1">Sin incluir oportunidades abiertas</p>
         </div>
       </div>
 
