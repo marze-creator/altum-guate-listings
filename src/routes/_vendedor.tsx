@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
   Columns3,
+  MessageSquareText,
   CalendarDays,
   CircleDollarSign,
   LogOut,
@@ -12,7 +13,6 @@ import {
   Sparkles,
   User,
 } from "lucide-react";
-
 
 export const Route = createFileRoute("/_vendedor")({
   component: VendedorLayout,
@@ -54,6 +54,9 @@ function VendedorLayout() {
           <Link to="/vendedores/crm" activeProps={{ className: "text-primary bg-muted" }} className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted whitespace-nowrap shrink-0">
             <Columns3 size={16} /> CRM
           </Link>
+          <Link to="/vendedores/conversaciones" activeProps={{ className: "text-primary bg-muted" }} className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted whitespace-nowrap shrink-0">
+            <MessageSquareText size={16} /> Conversaciones
+          </Link>
           <Link to="/vendedores/agenda" activeProps={{ className: "text-primary bg-muted" }} className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted whitespace-nowrap shrink-0">
             <CalendarDays size={16} /> Agenda
           </Link>
@@ -61,23 +64,23 @@ function VendedorLayout() {
             <CircleDollarSign size={16} /> Comisiones
           </Link>
           <Link to="/vendedores/metricas" activeProps={{ className: "text-primary bg-muted" }} className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted whitespace-nowrap shrink-0">
-  <BarChart3 size={16} /> Métricas
-</Link>
-<Link to="/vendedores/aprobacion" activeProps={{ className: "text-primary bg-muted" }} className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted whitespace-nowrap shrink-0">
-  <FileCheck size={16} /> Aprobación
-</Link>
-{isAdmin && (
-  <Link to="/vendedores/contenido" activeProps={{ className: "text-primary bg-muted" }} className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted whitespace-nowrap shrink-0">
-    <Sparkles size={16} /> Contenido
-  </Link>
-)}
-<Link
-  to="/vendedores/cuenta"
-  activeProps={{ className: "text-primary bg-muted" }}
-  className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted whitespace-nowrap shrink-0"
->
-  <User size={16} /> Mi Cuenta
-</Link>
+            <BarChart3 size={16} /> Métricas
+          </Link>
+          <Link to="/vendedores/aprobacion" activeProps={{ className: "text-primary bg-muted" }} className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted whitespace-nowrap shrink-0">
+            <FileCheck size={16} /> Aprobación
+          </Link>
+          {isAdmin && (
+            <Link to="/vendedores/contenido" activeProps={{ className: "text-primary bg-muted" }} className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted whitespace-nowrap shrink-0">
+              <Sparkles size={16} /> Contenido
+            </Link>
+          )}
+          <Link
+            to="/vendedores/cuenta"
+            activeProps={{ className: "text-primary bg-muted" }}
+            className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-sm text-muted-foreground hover:text-primary hover:bg-muted whitespace-nowrap shrink-0"
+          >
+            <User size={16} /> Mi Cuenta
+          </Link>
           <button onClick={async () => { await signOut(); window.location.href = "/vendedores/login"; }} className="ml-auto inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary px-3 py-1.5 shrink-0">
             <LogOut size={16} /> Salir
           </button>
