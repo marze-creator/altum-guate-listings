@@ -8,5 +8,13 @@ export const Route = createFileRoute("/_vendedor/vendedores/conversaciones")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: ConversationsInbox,
+  component: ConversationsPage,
 });
+
+function ConversationsPage() {
+  return (
+    <div className="conversations-route-shell">
+      <ConversationsInbox />
+    </div>
+  );
+}
