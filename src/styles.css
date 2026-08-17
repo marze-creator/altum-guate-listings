@@ -134,3 +134,127 @@
   }
   textarea.input-altum { @apply h-auto py-2; }
 }
+
+/* Conversaciones: cada panel administra su propio scroll. Evita que el hilo
+   haga scroll de toda la página en iPad/tablet y mantiene visible el composer. */
+.conversations-route-shell {
+  min-width: 0;
+}
+
+.conversations-route-shell > .container-altum > .grid > aside:first-child > div:last-child,
+.conversations-route-shell > .container-altum > .grid > main > .flex-1.overflow-y-auto,
+.conversations-route-shell > .container-altum > .grid > aside:last-child {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
+/* En el inbox interno no hacen falta los flotantes públicos; tapan controles. */
+body:has(.conversations-route-shell) a[aria-label="WhatsApp"],
+body:has(.conversations-route-shell) button[aria-label="Abrir chat con Andrea"],
+body:has(.conversations-route-shell) button[aria-label="Volver al inicio"] {
+  display: none !important;
+}
+
+@media (min-width: 1024px) {
+  .conversations-route-shell {
+    height: calc(100dvh - 9.5rem);
+    min-height: 640px;
+    overflow: hidden;
+  }
+
+  .conversations-route-shell > .container-altum {
+    display: flex;
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .conversations-route-shell > .container-altum > div:first-child {
+    flex: 0 0 auto;
+    margin-bottom: 0.75rem;
+  }
+
+  .conversations-route-shell > .container-altum > .grid {
+    grid-template-columns: minmax(250px, 300px) minmax(420px, 1fr) minmax(220px, 270px) !important;
+    flex: 1 1 0%;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: hidden !important;
+  }
+
+  .conversations-route-shell > .container-altum > .grid > aside:first-child {
+    height: 100%;
+    min-height: 0 !important;
+    overflow: hidden;
+  }
+
+  .conversations-route-shell > .container-altum > .grid > aside:first-child > div:last-child {
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .conversations-route-shell > .container-altum > .grid > main {
+    height: 100%;
+    min-height: 0 !important;
+    overflow: hidden;
+  }
+
+  .conversations-route-shell > .container-altum > .grid > main > .flex-1.overflow-y-auto {
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .conversations-route-shell > .container-altum > .grid > aside:last-child {
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 1023px) {
+  .conversations-route-shell > .container-altum {
+    padding-top: 1rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .conversations-route-shell > .container-altum > .grid {
+    display: flex !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    flex-direction: column;
+    overflow: visible !important;
+  }
+
+  .conversations-route-shell > .container-altum > .grid > aside:first-child {
+    height: 270px;
+    min-height: 270px !important;
+    overflow: hidden;
+  }
+
+  .conversations-route-shell > .container-altum > .grid > aside:first-child > div:last-child {
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .conversations-route-shell > .container-altum > .grid > main {
+    height: 65dvh;
+    min-height: 500px !important;
+    overflow: hidden;
+  }
+
+  .conversations-route-shell > .container-altum > .grid > main > .flex-1.overflow-y-auto {
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .conversations-route-shell > .container-altum > .grid > aside:last-child {
+    max-height: 420px;
+    overflow-y: auto;
+  }
+}
