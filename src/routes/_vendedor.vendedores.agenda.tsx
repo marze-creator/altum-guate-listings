@@ -12,9 +12,37 @@ export const Route = createFileRoute("/_vendedor/vendedores/agenda")({
   component: AgendaPage,
 });
 
+const ACTIVITY_SELECT = "id,title,type,status,notes,due_at,deal_id,lead_id,assigned_to_user_id,created_at,deals(id,title),leads(id,full_name,phone)";
+
+function getGuatemalaDayBounds(reference = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Guatemala",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(reference);
+  const value = (type: "year" | "month" | "day") => parts.find((part) => part.type === type)?.value;
+  const year = value("year");
+  const month = value("month");
+  const day = value("day");
+
+  if (!year || !month || !day) throw new Error("No se pudo calcular la fecha de Guatemala");
+
+  const todayStart = new Date(`${year}-${month}-${day}T00:00:00-06:00`);
+  const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+  return {
+    todayStart,
+    tomorrowStart,
+    todayStartIso: todayStart.toISOString(),
+    tomorrowStartIso: tomorrowStart.toISOString(),
+  };
+}
+
 function AgendaPage() {
   const { user } = useAuth();
   const [activities, setActivities] = useState<CrmActivity[]>([]);
+  const [completedCount, setCompletedCount] = useState(0);
   const [deals, setDeals] = useState<{ id: string; title: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -29,18 +57,57 @@ function AgendaPage() {
   async function load() {
     setLoading(true);
     const db = supabase as any;
-    const [{ data: activityRows, error }, { data: dealRows }] = await Promise.all([
-      db
-        .from("activities")
-        .select("id,title,type,status,notes,due_at,deal_id,lead_id,assigned_to_user_id,created_at,deals(id,title),leads(id,full_name,phone)")
-        .order("due_at", { ascending: true, nullsFirst: false })
-        .limit(200),
-      db.from("deals").select("id,title").order("created_at", { ascending: false }).limit(200),
-    ]);
-    if (error) toast.error(error.message + ". Revisa si ya aplicaste la migración del CRM.");
-    setActivities((activityRows ?? []) as CrmActivity[]);
-    setDeals((dealRows ?? []) as { id: string; title: string }[]);
-    setLoading(false);
+
+    try {
+      const { todayStartIso, tomorrowStartIso } = getGuatemalaDayBounds();
+      const [overdueResult, todayResult, upcomingResult, undatedResult, completedResult, dealsResult] = await Promise.all([
+        db
+          .from("activities")
+          .select(ACTIVITY_SELECT)
+          .neq("status", "completada")
+          .not("due_at", "is", null)
+          .lt("due_at", todayStartIso)
+          .order("due_at", { ascending: true, nullsFirst: false }),
+        db
+          .from("activities")
+          .select(ACTIVITY_SELECT)
+          .neq("status", "completada")
+          .gte("due_at", todayStartIso)
+          .lt("due_at", tomorrowStartIso)
+          .order("due_at", { ascending: true, nullsFirst: false }),
+        db
+          .from("activities")
+          .select(ACTIVITY_SELECT)
+          .neq("status", "completada")
+          .gte("due_at", tomorrowStartIso)
+          .order("due_at", { ascending: true, nullsFirst: false }),
+        db
+          .from("activities")
+          .select(ACTIVITY_SELECT)
+          .neq("status", "completada")
+          .is("due_at", null)
+          .order("created_at", { ascending: false }),
+        db
+          .from("activities")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "completada"),
+        db.from("deals").select("id,title").order("created_at", { ascending: false }).limit(200),
+      ]);
+
+      const activityResults = [overdueResult, todayResult, upcomingResult, undatedResult];
+      const firstError = [...activityResults, completedResult].find((result) => result.error)?.error;
+      if (firstError) {
+        toast.error(firstError.message + ". Revisa si ya aplicaste la migración del CRM.");
+      }
+
+      setActivities(activityResults.flatMap((result) => result.data ?? []) as CrmActivity[]);
+      setCompletedCount(completedResult.count ?? 0);
+      setDeals((dealsResult.data ?? []) as { id: string; title: string }[]);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo cargar la agenda");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function createActivity() {
@@ -65,32 +132,42 @@ function AgendaPage() {
   async function completeActivity(id: string) {
     const completedAt = new Date().toISOString();
     const previous = activities;
+    const previousCompletedCount = completedCount;
+    const wasActive = activities.some((row) => row.id === id && row.status !== "completada");
     setActivities((rows) => rows.map((row) => row.id === id ? { ...row, status: "completada" } : row));
+    if (wasActive) setCompletedCount((count) => count + 1);
+
     const { error } = await (supabase as any)
       .from("activities")
       .update({ status: "completada", completed_at: completedAt })
       .eq("id", id);
     if (error) {
       setActivities(previous);
+      setCompletedCount(previousCompletedCount);
       return toast.error(error.message);
     }
     toast.success("Actividad completada");
   }
 
   function handleActivityCompleted(id: string) {
+    const wasActive = activities.some((row) => row.id === id && row.status !== "completada");
     setActivities((rows) => rows.map((row) => row.id === id ? { ...row, status: "completada" } : row));
+    if (wasActive) setCompletedCount((count) => count + 1);
   }
 
   const grouped = useMemo(() => {
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
+    const { todayStart, tomorrowStart } = getGuatemalaDayBounds();
+    const todayStartTime = todayStart.getTime();
+    const tomorrowStartTime = tomorrowStart.getTime();
+
     return {
-      overdue: activities.filter((item) => item.status !== "completada" && item.due_at && new Date(item.due_at) < startOfToday),
-      today: activities.filter((item) => item.status !== "completada" && item.due_at && new Date(item.due_at) <= today && new Date(item.due_at) >= startOfToday),
-      upcoming: activities.filter((item) => item.status !== "completada" && (!item.due_at || new Date(item.due_at) > today)),
-      done: activities.filter((item) => item.status === "completada"),
+      overdue: activities.filter((item) => item.status !== "completada" && item.due_at && new Date(item.due_at).getTime() < todayStartTime),
+      today: activities.filter((item) => {
+        if (item.status === "completada" || !item.due_at) return false;
+        const dueAt = new Date(item.due_at).getTime();
+        return dueAt >= todayStartTime && dueAt < tomorrowStartTime;
+      }),
+      upcoming: activities.filter((item) => item.status !== "completada" && (!item.due_at || new Date(item.due_at).getTime() >= tomorrowStartTime)),
     };
   }, [activities]);
 
@@ -112,7 +189,7 @@ function AgendaPage() {
         <Metric label="Vencidas" value={String(grouped.overdue.length)} danger />
         <Metric label="Hoy" value={String(grouped.today.length)} />
         <Metric label="Próximas" value={String(grouped.upcoming.length)} />
-        <Metric label="Completadas" value={String(grouped.done.length)} />
+        <Metric label="Completadas" value={String(completedCount)} />
       </div>
 
       {showForm && (
