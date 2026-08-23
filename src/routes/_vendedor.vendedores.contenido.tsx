@@ -678,11 +678,33 @@ function PostSheet({ open, onOpenChange, post, onSaved }: {
                 <button onClick={() => publishNow(["facebook", "instagram"])} disabled={publishing || scheduling} className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-semibold border disabled:opacity-50" style={{ borderColor: GOLD, color: GOLD }}>
                   <Send size={14} /> Publicar FB + IG
                 </button>
-                <button onClick={() => schedulePublication([draft.network ?? "instagram"])} disabled={publishing || scheduling || !draft.scheduled_at} className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-semibold border disabled:opacity-50" style={{ borderColor: CARD_BORDER, color: "white" }}>
-                  {scheduling ? <Loader2 className="animate-spin" size={14} /> : <Clock3 size={14} />} Programar esta red
+                <button
+                  onClick={() => schedulePublication([draft.network ?? "instagram"])}
+                  disabled={publishing || scheduling || !draft.scheduled_at}
+                  className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-semibold border transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    borderColor: GOLD,
+                    color: GOLD,
+                    background: "rgba(201,168,76,0.10)",
+                    boxShadow: "inset 0 0 0 1px rgba(201,168,76,0.08)",
+                  }}
+                >
+                  {scheduling ? <Loader2 className="animate-spin" size={14} /> : <Clock3 size={14} />}
+                  Programar esta red
                 </button>
-                <button onClick={() => schedulePublication(["facebook", "instagram"])} disabled={publishing || scheduling || !draft.scheduled_at} className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-semibold border disabled:opacity-50" style={{ borderColor: CARD_BORDER, color: "white" }}>
-                  <Clock3 size={14} /> Programar FB + IG
+                <button
+                  onClick={() => schedulePublication(["facebook", "instagram"])}
+                  disabled={publishing || scheduling || !draft.scheduled_at}
+                  className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-semibold border transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    borderColor: GOLD,
+                    color: GOLD,
+                    background: "rgba(201,168,76,0.16)",
+                    boxShadow: "inset 0 0 0 1px rgba(201,168,76,0.12)",
+                  }}
+                >
+                  <Clock3 size={14} />
+                  Programar FB + IG
                 </button>
               </div>
             </div>
