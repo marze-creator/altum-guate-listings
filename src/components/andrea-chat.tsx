@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
 
-const WEBHOOK_URL = "https://altumgroup.app.n8n.cloud/webhook/altum-web-chat";
+const WEBHOOK_URL = "https://altum-n8n.ca-1.instapods.app/webhook/altum-web-chat";
 const SESSION_KEY = "altum_chat_session_id";
 
 type Msg = { role: "user" | "assistant"; text: string };
