@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   Sparkles, Instagram, Facebook, Linkedin, Music2, Globe2,
   Calendar as CalendarIcon, Lightbulb, BarChart3, FileText,
-  Plus, Trash2, Copy, ChevronLeft, ChevronRight, Loader2, Check,
+  Plus, Trash2, Copy, ChevronLeft, ChevronRight, Loader2, Check, Send, Clock3,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -534,6 +534,8 @@ function PostSheet({ open, onOpenChange, post, onSaved }: {
 }) {
   const [draft, setDraft] = useState<Partial<ContentPost>>({});
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
   const [pkg, setPkg] = useState<PropertyContent | null>(null);
   const [pkgLoading, setPkgLoading] = useState(false);
 
@@ -575,6 +577,35 @@ function PostSheet({ open, onOpenChange, post, onSaved }: {
     const { error } = await db.from("content_posts").delete().eq("id", draft.id);
     if (error) { toast.error("No se pudo eliminar"); return; }
     toast.success("Eliminada"); onSaved();
+  }
+
+  async function publishNow(networks: Network[]) {
+    if (!draft.content_id) return toast.error("Esta publicación no está vinculada a contenido aprobado");
+    if (!confirm(`¿Publicar ahora en ${networks.map((n) => netMeta(n).label).join(" + ")}?`)) return;
+    setPublishing(true);
+    const { data, error } = await db.rpc("publish_content_now", {
+      p_content_id: draft.content_id,
+      p_networks: networks,
+    });
+    setPublishing(false);
+    if (error) return toast.error(error.message || "No se pudo enviar a publicación");
+    toast.success("Publicación enviada a Meta");
+    onSaved();
+  }
+
+  async function schedulePublication(networks: Network[]) {
+    if (!draft.content_id) return toast.error("Esta publicación no está vinculada a contenido aprobado");
+    if (!draft.scheduled_at) return toast.error("Selecciona primero fecha y hora");
+    setScheduling(true);
+    const { error } = await db.rpc("schedule_content_publication", {
+      p_content_id: draft.content_id,
+      p_networks: networks,
+      p_scheduled_at: draft.scheduled_at,
+    });
+    setScheduling(false);
+    if (error) return toast.error(error.message || "No se pudo programar");
+    toast.success("Publicación programada");
+    onSaved();
   }
 
   const scheduledLocal = draft.scheduled_at ? toLocalInput(draft.scheduled_at) : "";
@@ -631,6 +662,29 @@ function PostSheet({ open, onOpenChange, post, onSaved }: {
               ) : (
                 <div className="text-sm" style={{ color: TEXT_DIM }}>Paquete no disponible.</div>
               )}
+            </div>
+          )}
+
+          {isEdit && draft.content_id && draft.status === "listo" && (
+            <div className="rounded-lg p-4 space-y-3" style={{ background: "#0F1830", border: `1px solid ${CARD_BORDER}` }}>
+              <div>
+                <div className="text-sm font-semibold text-white">Control de publicación</div>
+                <div className="text-xs mt-1" style={{ color: TEXT_DIM }}>Solo administradores. Aprobar contenido no publica; la salida a redes ocurre aquí.</div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button onClick={() => publishNow([draft.network ?? "instagram"])} disabled={publishing || scheduling} className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-semibold disabled:opacity-50" style={{ background: GOLD, color: NAV_BG }}>
+                  {publishing ? <Loader2 className="animate-spin" size={14} /> : <Send size={14} />} Publicar esta red
+                </button>
+                <button onClick={() => publishNow(["facebook", "instagram"])} disabled={publishing || scheduling} className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-semibold border disabled:opacity-50" style={{ borderColor: GOLD, color: GOLD }}>
+                  <Send size={14} /> Publicar FB + IG
+                </button>
+                <button onClick={() => schedulePublication([draft.network ?? "instagram"])} disabled={publishing || scheduling || !draft.scheduled_at} className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-semibold border disabled:opacity-50" style={{ borderColor: CARD_BORDER, color: "white" }}>
+                  {scheduling ? <Loader2 className="animate-spin" size={14} /> : <Clock3 size={14} />} Programar esta red
+                </button>
+                <button onClick={() => schedulePublication(["facebook", "instagram"])} disabled={publishing || scheduling || !draft.scheduled_at} className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-md text-sm font-semibold border disabled:opacity-50" style={{ borderColor: CARD_BORDER, color: "white" }}>
+                  <Clock3 size={14} /> Programar FB + IG
+                </button>
+              </div>
             </div>
           )}
         </div>
