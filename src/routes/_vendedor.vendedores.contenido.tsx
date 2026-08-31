@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
+import { TikTokStudio } from "@/components/tiktok-generator";
 
 export const Route = createFileRoute("/_vendedor/vendedores/contenido")({
   head: () => ({ meta: [{ title: "Contenido — ALTUM GROUP" }, { name: "robots", content: "noindex" }] }),
@@ -165,6 +166,7 @@ function ContenidoStudio() {
             {[
               { v: "resumen", l: "Resumen", I: FileText },
               { v: "publicaciones", l: "Publicaciones", I: Instagram },
+              { v: "tiktok", l: "TikTok", I: Music2 },
               { v: "calendario", l: "Calendario", I: CalendarIcon },
               { v: "ideas", l: "Ideas", I: Lightbulb },
               { v: "metricas", l: "Métricas", I: BarChart3 },
@@ -181,6 +183,7 @@ function ContenidoStudio() {
 
           <TabsContent value="resumen"><Resumen posts={posts} ideas={ideas} loading={loadingData} onEdit={openEdit} /></TabsContent>
           <TabsContent value="publicaciones"><Publicaciones posts={posts} loading={loadingData} onEdit={openEdit} onNew={() => openNew()} /></TabsContent>
+          <TabsContent value="tiktok"><TikTokStudio /></TabsContent>
           <TabsContent value="calendario"><Calendario posts={posts} onEdit={openEdit} onNew={openNew} /></TabsContent>
           <TabsContent value="ideas"><Ideas ideas={ideas} reload={loadAll} /></TabsContent>
           <TabsContent value="metricas"><Metricas metrics={metrics} loading={loadingData} /></TabsContent>
