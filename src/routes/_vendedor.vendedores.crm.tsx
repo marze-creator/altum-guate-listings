@@ -59,6 +59,13 @@ type WhatsAppMessage = {
   created_at: string;
 };
 
+type ClosingMode = "propio" | "compartido";
+
+type PendingClose = {
+  dealId: string;
+  stageId: string;
+};
+
 export const Route = createFileRoute("/_vendedor/vendedores/crm")({
   head: () => ({
     meta: [
@@ -85,6 +92,11 @@ function CrmPage() {
   const [showNewLead, setShowNewLead] = useState(false);
   const [activeDealId, setActiveDealId] = useState<string | null>(null);
   const [detailDealId, setDetailDealId] = useState<string | null>(null);
+  const [pendingClose, setPendingClose] = useState<PendingClose | null>(null);
+  const [closingPrice, setClosingPrice] = useState("");
+  const [closingMode, setClosingMode] = useState<ClosingMode>("propio");
+  const [closingAdvisorId, setClosingAdvisorId] = useState("");
+  const [savingClose, setSavingClose] = useState(false);
 
   const [form, setForm] = useState({
     full_name: "",
@@ -143,7 +155,7 @@ function CrmPage() {
       db
         .from("deals")
         .select(
-          "id,title,status,stage_id,lead_id,property_id,assigned_to_user_id,deal_value,currency,commission_rate,commission_total,advisor_commission_rate,commission_advisor,commission_company,next_activity_at,temperature,created_at,leads(id,full_name,phone,email,source,lead_kind,interest_operation,interest_type,interest_zone,budget_min,budget_max,currency,notes,temperature,status,next_follow_up_at,property_id,ad_id,ad_headline,ad_source_url,ad_source_type,ad_ctwa_clid,ad_referral),properties(id,title,zone,price,currency,operation,cover_image),deal_stages(id,name,slug,position,probability,color,is_won,is_lost)",
+          "id,title,status,stage_id,lead_id,property_id,assigned_to_user_id,deal_value,currency,commission_rate,commission_total,advisor_commission_rate,commission_advisor,commission_company,next_activity_at,temperature,created_at,operation,captured_by_user_id,closed_by_user_id,commission_captured_advisor,commission_closing_advisor,leads(id,full_name,phone,email,source,lead_kind,interest_operation,interest_type,interest_zone,budget_min,budget_max,currency,notes,temperature,status,next_follow_up_at,property_id,ad_id,ad_headline,ad_source_url,ad_source_type,ad_ctwa_clid,ad_referral),properties(id,title,zone,price,currency,operation,cover_image),deal_stages(id,name,slug,position,probability,color,is_won,is_lost)",
         )
         .order("created_at", { ascending: false })
         .limit(300),
@@ -176,18 +188,14 @@ function CrmPage() {
       ),
     );
 
-    let vendorIds: string[] = [];
+    const { data: roleRows } = await db
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "vendedor");
 
-    if (isAdmin) {
-      const { data: roleRows } = await db
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "vendedor");
-
-      vendorIds = ((roleRows ?? []) as { user_id: string }[]).map(
-        (r) => r.user_id,
-      );
-    }
+    const vendorIds = ((roleRows ?? []) as { user_id: string }[]).map(
+      (r) => r.user_id,
+    );
 
     const idsToFetch = Array.from(
       new Set([...assignedIds, ...vendorIds]),
@@ -212,16 +220,14 @@ function CrmPage() {
 
       setSellerNames(map);
 
-      if (isAdmin) {
-        setVendors(
-          vendorIds
-            .map((id) => ({
-              user_id: id,
-              full_name: map[id] || "Sin nombre",
-            }))
-            .sort((a, b) => a.full_name.localeCompare(b.full_name)),
-        );
-      }
+      setVendors(
+        vendorIds
+          .map((id) => ({
+            user_id: id,
+            full_name: map[id] || "Sin nombre",
+          }))
+          .sort((a, b) => a.full_name.localeCompare(b.full_name)),
+      );
     } else {
       setSellerNames({});
       setVendors([]);
@@ -438,11 +444,18 @@ function CrmPage() {
 
     if (!target) return;
 
-    const status = target.is_won
-      ? "ganado"
-      : target.is_lost
-        ? "perdido"
-        : "abierto";
+    if (target.is_won) {
+      const publishedPrice = Number(current.properties?.price ?? current.deal_value ?? 0);
+      setPendingClose({ dealId, stageId });
+      setClosingPrice(String(Number(current.deal_value ?? publishedPrice) || publishedPrice || ""));
+      setClosingMode("propio");
+      setClosingAdvisorId("");
+      return;
+    }
+
+    const status = target.is_lost
+      ? "perdido"
+      : "abierto";
 
     const { error } =
       await (supabase as any)
@@ -471,6 +484,73 @@ function CrmPage() {
           : deal,
       ),
     );
+  }
+
+  async function confirmClose() {
+    if (!pendingClose || !user) {
+      return toast.error("Sesión expirada");
+    }
+
+    const current = deals.find((item) => item.id === pendingClose.dealId);
+    const target = stages.find((item) => item.id === pendingClose.stageId);
+
+    if (!current || !target?.is_won) {
+      setPendingClose(null);
+      return toast.error("No fue posible identificar la oportunidad de cierre.");
+    }
+
+    const finalPrice = Number(closingPrice);
+
+    if (!Number.isFinite(finalPrice) || finalPrice <= 0) {
+      return toast.error("Ingresa un precio final de cierre válido.");
+    }
+
+    const capturedAdvisorId =
+      (current as any).captured_by_user_id ??
+      current.assigned_to_user_id ??
+      user.id;
+
+    const finalClosingAdvisorId =
+      closingMode === "compartido"
+        ? closingAdvisorId
+        : capturedAdvisorId;
+
+    if (!finalClosingAdvisorId) {
+      return toast.error("Selecciona el asesor que participó en el cierre.");
+    }
+
+    if (
+      closingMode === "compartido" &&
+      finalClosingAdvisorId === capturedAdvisorId
+    ) {
+      return toast.error("Para un cierre compartido selecciona un asesor distinto al asesor captador.");
+    }
+
+    setSavingClose(true);
+
+    const { error } = await (supabase as any)
+      .from("deals")
+      .update({
+        stage_id: pendingClose.stageId,
+        status: "ganado",
+        deal_value: finalPrice,
+        captured_by_user_id: capturedAdvisorId,
+        closed_by_user_id: finalClosingAdvisorId,
+      })
+      .eq("id", current.id);
+
+    if (error) {
+      setSavingClose(false);
+      return toast.error("No fue posible confirmar la venta: " + error.message);
+    }
+
+    toast.success("Venta confirmada y comisión recalculada.");
+    setPendingClose(null);
+    setClosingPrice("");
+    setClosingMode("propio");
+    setClosingAdvisorId("");
+    await load();
+    setSavingClose(false);
   }
 
   function handleDragStart(
@@ -953,6 +1033,205 @@ function CrmPage() {
         </DndContext>
       )}
 
+      {pendingClose && (() => {
+        const closingDeal = deals.find((item) => item.id === pendingClose.dealId);
+        if (!closingDeal) return null;
+
+        const publishedPrice = Number(closingDeal.properties?.price ?? 0);
+        const finalPrice = Number(closingPrice || 0);
+        const operation = String((closingDeal as any).operation ?? closingDeal.properties?.operation ?? "").toLowerCase();
+        const commissionTotal = operation === "renta" ? finalPrice : finalPrice * 0.05;
+        const companyCommission = commissionTotal * 0.30;
+        const advisorsCommission = commissionTotal * 0.70;
+        const capturedAdvisorId =
+          (closingDeal as any).captured_by_user_id ??
+          closingDeal.assigned_to_user_id ??
+          user?.id ??
+          "";
+        const capturedAdvisorName =
+          sellerNames[capturedAdvisorId] ??
+          vendors.find((item) => item.user_id === capturedAdvisorId)?.full_name ??
+          "Asesor ALTUM";
+        const otherVendors = vendors.filter((item) => item.user_id !== capturedAdvisorId);
+
+        return (
+          <div
+            className="fixed inset-0 z-[70] bg-black/55 flex items-center justify-center p-4"
+            onClick={() => !savingClose && setPendingClose(null)}
+          >
+            <div
+              className="w-full max-w-xl bg-background border border-border rounded-sm shadow-2xl overflow-hidden"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="bg-primary text-white px-5 py-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.18em] text-secondary font-semibold">
+                    Confirmar cierre
+                  </p>
+                  <h2 className="font-display text-xl">
+                    {closingDeal.leads?.full_name ?? closingDeal.title}
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  disabled={savingClose}
+                  onClick={() => setPendingClose(null)}
+                  className="p-2 rounded-sm hover:bg-white/10 disabled:opacity-50"
+                  aria-label="Cerrar"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="p-5 space-y-5">
+                <div className="rounded-sm border border-border bg-card p-4">
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Propiedad</p>
+                  <p className="font-semibold text-primary mt-1">
+                    {closingDeal.properties?.title ?? "Sin propiedad enlazada"}
+                  </p>
+                  <div className="grid sm:grid-cols-2 gap-3 mt-4">
+                    <InfoRow
+                      label="Precio publicado"
+                      value={publishedPrice > 0 ? money(publishedPrice, closingDeal.currency ?? "GTQ") : "—"}
+                    />
+                    <InfoRow label="Asesor captador" value={capturedAdvisorName} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground">
+                    Precio final de cierre *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={closingPrice}
+                    onChange={(event) => setClosingPrice(event.target.value)}
+                    className="input-altum mt-1 w-full"
+                    placeholder="Ej. 545000"
+                  />
+                  {publishedPrice > 0 && finalPrice > 0 && publishedPrice !== finalPrice && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Diferencia contra publicado: {money(finalPrice - publishedPrice, closingDeal.currency ?? "GTQ")}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                    Tipo de cierre
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setClosingMode("propio");
+                        setClosingAdvisorId("");
+                      }}
+                      className={`h-11 rounded-sm border text-sm font-semibold ${
+                        closingMode === "propio"
+                          ? "bg-primary text-white border-primary"
+                          : "bg-card border-border hover:bg-muted"
+                      }`}
+                    >
+                      Cierre propio
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setClosingMode("compartido")}
+                      className={`h-11 rounded-sm border text-sm font-semibold ${
+                        closingMode === "compartido"
+                          ? "bg-secondary text-primary border-secondary"
+                          : "bg-card border-border hover:bg-muted"
+                      }`}
+                    >
+                      Cierre compartido
+                    </button>
+                  </div>
+                </div>
+
+                {closingMode === "compartido" && (
+                  <div>
+                    <label className="text-xs uppercase tracking-wider text-muted-foreground">
+                      Asesor que comparte el cierre *
+                    </label>
+                    <select
+                      value={closingAdvisorId}
+                      onChange={(event) => setClosingAdvisorId(event.target.value)}
+                      className="input-altum mt-1 w-full"
+                    >
+                      <option value="">Selecciona asesor</option>
+                      {otherVendors.map((vendor) => (
+                        <option key={vendor.user_id} value={vendor.user_id}>
+                          {vendor.full_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="rounded-sm border border-secondary/60 bg-secondary/5 p-4">
+                  <h3 className="font-display text-primary text-lg">Comisión estimada</h3>
+                  <div className="grid sm:grid-cols-2 gap-3 mt-3 text-sm">
+                    <InfoRow
+                      label={operation === "renta" ? "Comisión total" : "Comisión total (5%)"}
+                      value={money(commissionTotal, closingDeal.currency ?? "GTQ")}
+                    />
+                    <InfoRow
+                      label="ALTUM (30%)"
+                      value={money(companyCommission, closingDeal.currency ?? "GTQ")}
+                    />
+                    {closingMode === "propio" ? (
+                      <InfoRow
+                        label="Asesor (70%)"
+                        value={money(advisorsCommission, closingDeal.currency ?? "GTQ")}
+                      />
+                    ) : (
+                      <>
+                        <InfoRow
+                          label="Asesor captador (35%)"
+                          value={money(commissionTotal * 0.35, closingDeal.currency ?? "GTQ")}
+                        />
+                        <InfoRow
+                          label="Asesor cierre (35%)"
+                          value={money(commissionTotal * 0.35, closingDeal.currency ?? "GTQ")}
+                        />
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    disabled={savingClose}
+                    onClick={() => setPendingClose(null)}
+                    className="h-10 px-4 border border-border rounded-sm hover:bg-muted text-sm disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={
+                      savingClose ||
+                      !closingPrice ||
+                      Number(closingPrice) <= 0 ||
+                      (closingMode === "compartido" && !closingAdvisorId)
+                    }
+                    onClick={() => void confirmClose()}
+                    className="h-10 px-4 bg-primary text-white rounded-sm font-semibold hover:bg-primary/90 disabled:opacity-50 inline-flex items-center gap-2"
+                  >
+                    {savingClose && <RefreshCw size={15} className="animate-spin" />}
+                    {savingClose ? "Confirmando…" : "Confirmar venta"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {detailDeal && (
         <DealDetail
           deal={detailDeal}
@@ -965,6 +1244,7 @@ function CrmPage() {
           userId={
             user?.id ?? null
           }
+          sellerNames={sellerNames}
         />
       )}
     </div>
@@ -1340,6 +1620,7 @@ function DealDetail({
   onMove,
   onRefresh,
   userId,
+  sellerNames,
 }: {
   deal: CrmDeal;
   stages: CrmStage[];
@@ -1351,6 +1632,7 @@ function DealDetail({
   onRefresh:
     () => void | Promise<void>;
   userId: string | null;
+  sellerNames: Record<string, string>;
 }) {
   const [activities, setActivities] =
     useState<CrmActivity[]>([]);
@@ -1803,6 +2085,55 @@ function DealDetail({
         </div>
 
         <div className="p-5 space-y-6">
+          {deal.status === "ganado" && (() => {
+            const capturedId = (deal as any).captured_by_user_id ?? deal.assigned_to_user_id ?? "";
+            const closedId = (deal as any).closed_by_user_id ?? capturedId;
+            const shared = Boolean(capturedId && closedId && capturedId !== closedId);
+            const publishedPrice = Number(property?.price ?? 0);
+            const finalPrice = Number(deal.deal_value ?? 0);
+
+            return (
+              <section className="border border-emerald-200 rounded-sm p-4 bg-emerald-50/70">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={18} className="text-emerald-700" />
+                  <h3 className="font-display text-emerald-900 text-lg">Venta cerrada</h3>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3 mt-4 text-sm">
+                  <InfoRow
+                    label="Precio publicado"
+                    value={publishedPrice > 0 ? money(publishedPrice, deal.currency ?? "GTQ") : "—"}
+                  />
+                  <InfoRow
+                    label="Precio final de venta"
+                    value={money(finalPrice, deal.currency ?? "GTQ")}
+                  />
+                  <InfoRow
+                    label="Tipo de cierre"
+                    value={shared ? "Compartido" : "Propio"}
+                  />
+                  <InfoRow
+                    label="Asesor captador"
+                    value={sellerNames[capturedId] ?? "Asesor ALTUM"}
+                  />
+                  {shared && (
+                    <InfoRow
+                      label="Asesor de cierre"
+                      value={sellerNames[closedId] ?? "Asesor ALTUM"}
+                    />
+                  )}
+                  <InfoRow
+                    label="Comisión asesor"
+                    value={money(deal.commission_advisor, deal.currency ?? "GTQ")}
+                  />
+                  <InfoRow
+                    label="Comisión ALTUM"
+                    value={money(deal.commission_company, deal.currency ?? "GTQ")}
+                  />
+                </div>
+              </section>
+            );
+          })()}
+
           <section className="grid sm:grid-cols-2 gap-3 text-sm">
             <InfoRow
               label="Teléfono"
