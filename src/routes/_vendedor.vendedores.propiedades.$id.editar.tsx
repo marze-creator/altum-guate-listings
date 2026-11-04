@@ -6,7 +6,7 @@ import { PROPERTY_TYPES } from "@/lib/properties";
 import { UBICACIONES_PREDEFINIDAS, DEPARTAMENTOS } from "@/lib/locations";
 import { MapPicker } from "@/components/map-picker";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Upload, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, Upload, Trash2, ImagePlus, ArrowUp, ArrowDown, Star, GripVertical, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/_vendedor/vendedores/propiedades/$id/editar")({
   head: () => ({ meta: [{ title: "Editar propiedad — ALTUM GROUP" }, { name: "robots", content: "noindex" }] }),
@@ -23,7 +23,10 @@ function EditProperty() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
-  const [existingImages, setExistingImages] = useState<{ id: string; url: string }[]>([]);
+  const [existingImages, setExistingImages] = useState<{ id: string; url: string; position: number }[]>([]);
+  const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [imageBusy, setImageBusy] = useState(false);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
   const [otra, setOtra] = useState(false);
   const [f, setF] = useState({
     title: "", description: "", price: "", currency: "GTQ" as "GTQ" | "USD", operation: "venta", type: "Casa",
@@ -64,21 +67,144 @@ function EditProperty() {
       });
       setOtra(!UBICACIONES_PREDEFINIDAS.includes(row.zone));
       const imgs = (data.property_images ?? []).sort((a: any, b: any) => a.position - b.position);
-      setExistingImages(imgs.map((i: any) => ({ id: i.id, url: i.url })));
+      setExistingImages(imgs.map((i: any) => ({ id: i.id, url: i.url, position: i.position })));
+      setCoverImage(row.cover_image ?? imgs[0]?.url ?? null);
       setLoading(false);
     })();
   }, [id]);
 
+  async function reloadImages() {
+    const { data, error } = await (supabase as any)
+      .from("property_images").select("id,url,position").eq("property_id", id).order("position");
+    if (error) throw error;
+    setExistingImages((data ?? []).map((img: any) => ({ id: img.id, url: img.url, position: img.position })));
+    const { data: property } = await (supabase as any).from("properties").select("cover_image").eq("id", id).single();
+    setCoverImage(property?.cover_image ?? null);
+  }
+
+  // Positions are persisted in Supabase; arrows also work on touch screens.
+  async function reorderImages(next: { id: string; url: string; position: number }[]) {
+    if (imageBusy) return;
+    setImageBusy(true);
+    try {
+      const updates = next.map((img, position) =>
+        (supabase as any).from("property_images").update({ position }).eq("id", img.id).eq("property_id", id)
+      );
+      const results = await Promise.all(updates);
+      const failed = results.find((result: any) => result.error);
+      if (failed) throw failed.error;
+      setExistingImages(next.map((img, position) => ({ ...img, position })));
+      toast.success("Orden de fotos actualizado");
+    } catch (e: any) {
+      toast.error(e.message || "No se pudo cambiar el orden");
+      await reloadImages().catch(console.error);
+    } finally {
+      setImageBusy(false);
+      setDraggedId(null);
+    }
+  }
+
+  function moveImage(index: number, direction: -1 | 1) {
+    const target = index + direction;
+    if (target < 0 || target >= existingImages.length) return;
+    const next = [...existingImages];
+    [next[index], next[target]] = [next[target], next[index]];
+    void reorderImages(next);
+  }
+
+  function dropImage(targetId: string) {
+    if (!draggedId || draggedId === targetId) { setDraggedId(null); return; }
+    const from = existingImages.findIndex((img) => img.id === draggedId);
+    const to = existingImages.findIndex((img) => img.id === targetId);
+    if (from < 0 || to < 0) { setDraggedId(null); return; }
+    const next = [...existingImages];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    void reorderImages(next);
+  }
+
+  async function chooseCover(img: { id: string; url: string }) {
+    if (imageBusy || coverImage === img.url) return;
+    setImageBusy(true);
+    try {
+      const { error } = await (supabase as any).from("properties").update({ cover_image: img.url }).eq("id", id);
+      if (error) throw error;
+      setCoverImage(img.url);
+      toast.success("Portada actualizada");
+    } catch (e: any) {
+      toast.error(e.message || "No se pudo actualizar la portada");
+    } finally {
+      setImageBusy(false);
+    }
+  }
+
   async function removeImage(imgId: string) {
-    if (!confirm("¿Eliminar esta imagen?")) return;
-    const { error } = await supabase.from("property_images").delete().eq("id", imgId);
-    if (error) return toast.error(error.message);
-    setExistingImages((s) => s.filter((i) => i.id !== imgId));
-    toast.success("Imagen eliminada");
+    if (imageBusy || !confirm("¿Eliminar esta foto de la galería?")) return;
+    setImageBusy(true);
+    try {
+      const img = existingImages.find((i) => i.id === imgId);
+      if (!img) return;
+      const remaining = existingImages.filter((i) => i.id !== imgId);
+      const { error } = await (supabase as any).from("property_images").delete()
+        .eq("id", imgId).eq("property_id", id);
+      if (error) throw error;
+      if (coverImage === img.url) {
+        const nextCover = remaining[0]?.url ?? null;
+        const { error: coverError } = await (supabase as any).from("properties")
+          .update({ cover_image: nextCover }).eq("id", id);
+        if (coverError) throw coverError;
+        setCoverImage(nextCover);
+      }
+      const result = await Promise.all(remaining.map((item, position) =>
+        (supabase as any).from("property_images").update({ position })
+          .eq("id", item.id).eq("property_id", id)
+      ));
+      const failed = result.find((entry: any) => entry.error);
+      if (failed) throw failed.error;
+      setExistingImages(remaining.map((item, position) => ({ ...item, position })));
+      toast.success("Foto eliminada de la galería");
+    } catch (e: any) {
+      toast.error(e.message || "No se pudo eliminar la foto");
+      await reloadImages().catch(console.error);
+    } finally {
+      setImageBusy(false);
+    }
+  }
+
+  async function replaceImage(imgId: string, file?: File) {
+    if (!file || !user || imageBusy) return;
+    if (!file.type.startsWith("image/")) return toast.error("Selecciona una imagen válida");
+    setImageBusy(true);
+    try {
+      const original = existingImages.find((img) => img.id === imgId);
+      if (!original) throw new Error("Imagen no encontrada");
+      const safeName = file.name.replace(/[^\w.-]/g, "_");
+      const filePath = `${user.id}/${id}/${Date.now()}-replacement-${safeName}`;
+      const { error: uploadError } = await supabase.storage.from("property-images").upload(filePath, file);
+      if (uploadError) throw uploadError;
+      const { data: publicFile } = supabase.storage.from("property-images").getPublicUrl(filePath);
+      const url = publicFile.publicUrl;
+      const { error } = await (supabase as any).from("property_images")
+        .update({ url }).eq("id", imgId).eq("property_id", id);
+      if (error) throw error;
+      if (coverImage === original.url) {
+        const { error: coverError } = await (supabase as any).from("properties")
+          .update({ cover_image: url }).eq("id", id);
+        if (coverError) throw coverError;
+        setCoverImage(url);
+      }
+      setExistingImages((items) => items.map((img) => img.id === imgId ? { ...img, url } : img));
+      toast.success("Fotografía reemplazada");
+    } catch (e: any) {
+      toast.error(e.message || "No se pudo reemplazar la foto");
+      await reloadImages().catch(console.error);
+    } finally {
+      setImageBusy(false);
+    }
   }
 
   async function save() {
-    if (!user) return;
+    if (!user || imageBusy) return;
     if (!f.title.trim()) return toast.error("Título obligatorio");
     if (!f.price || Number(f.price) <= 0) return toast.error("Precio inválido");
     setSaving(true);
@@ -110,16 +236,23 @@ function EditProperty() {
       if (error) throw error;
 
       if (files.length > 0) {
-        const startPos = existingImages.length;
+        const { data: currentImages, error: imagesError } = await (supabase as any)
+          .from("property_images").select("position").eq("property_id", id).order("position", { ascending: false }).limit(1);
+        if (imagesError) throw imagesError;
+        const startPos = (currentImages?.[0]?.position ?? -1) + 1;
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
           const safeName = file.name.replace(/[^\w.-]/g, "_");
           const path = `${user.id}/${id}/${Date.now()}-${i}-${safeName}`;
           const { error: upErr } = await supabase.storage.from("property-images").upload(path, file);
-          if (upErr) { console.error(upErr); continue; }
+          if (upErr) throw upErr;
           const { data: pub } = supabase.storage.from("property-images").getPublicUrl(path);
-          await supabase.from("property_images").insert({ property_id: id, url: pub.publicUrl, position: startPos + i });
-          if (startPos + i === 0) await supabase.from("properties").update({ cover_image: pub.publicUrl }).eq("id", id);
+          const { error: insertError } = await supabase.from("property_images").insert({ property_id: id, url: pub.publicUrl, position: startPos + i });
+          if (insertError) throw insertError;
+          if (startPos + i === 0) {
+            const { error: coverError } = await supabase.from("properties").update({ cover_image: pub.publicUrl }).eq("id", id);
+            if (coverError) throw coverError;
+          }
         }
       }
 
@@ -243,20 +376,69 @@ function EditProperty() {
           <p className="text-xs text-muted-foreground mt-2">Lat: {f.latitude.toFixed(6)} · Lng: {f.longitude.toFixed(6)}</p>
         </div>
 
-        {existingImages.length > 0 && (
-          <div>
-            <p className="text-xs uppercase tracking-wider text-primary font-semibold mb-2">Fotos actuales</p>
-            <div className="grid grid-cols-3 gap-2">
+        <div className="pt-4 border-t border-border">
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-primary font-semibold">Administrar fotografías ({existingImages.length})</p>
+              <p className="text-xs text-muted-foreground mt-1">Reemplaza, elimina, elige la portada o cambia el orden. También puedes arrastrar desde una computadora.</p>
+            </div>
+            {imageBusy && <RefreshCw size={18} className="animate-spin text-secondary shrink-0" aria-label="Actualizando fotos" />}
+          </div>
+          {existingImages.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4">Aún no hay fotos. Puedes agregarlas abajo.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {existingImages.map((img, i) => (
-                <div key={img.id} className="relative aspect-[4/3] rounded-sm overflow-hidden border border-border group">
-                  <img src={img.url} alt="" className="w-full h-full object-cover" />
-                  {i === 0 && <span className="absolute top-1 left-1 bg-secondary text-primary text-xs px-2 py-0.5 rounded-sm font-semibold">Portada</span>}
-                  <button onClick={() => removeImage(img.id)} className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-sm opacity-0 group-hover:opacity-100"><Trash2 size={12} /></button>
+                <div key={img.id} draggable={!imageBusy}
+                  onDragStart={() => setDraggedId(img.id)}
+                  onDragEnd={() => setDraggedId(null)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => { e.preventDefault(); dropImage(img.id); }}
+                  className={`border rounded-md overflow-hidden bg-card ${draggedId === img.id ? "opacity-50 border-secondary" : "border-border"}`}>
+                  <div className="relative aspect-[4/3]">
+                    <img src={img.url} alt={`Foto ${i + 1} de la propiedad`} className="h-full w-full object-cover" />
+                    <span className="absolute top-2 left-2 rounded bg-primary/85 px-2 py-1 text-xs text-white flex items-center gap-1">
+                      <GripVertical size={12} /> Foto {i + 1}
+                    </span>
+                    {coverImage === img.url && (
+                      <span className="absolute top-2 right-2 rounded bg-secondary text-primary px-2 py-1 text-xs font-semibold flex items-center gap-1">
+                        <Star size={12} fill="currentColor" /> Portada
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-2 grid grid-cols-2 gap-2">
+                    <button type="button" disabled={imageBusy || coverImage === img.url}
+                      onClick={() => chooseCover(img)}
+                      className="inline-flex items-center justify-center gap-1 rounded border border-border px-2 py-2 text-xs disabled:opacity-50 hover:bg-muted">
+                      <Star size={13} /> Portada
+                    </button>
+                    <label className={`inline-flex items-center justify-center gap-1 rounded border border-border px-2 py-2 text-xs hover:bg-muted cursor-pointer ${imageBusy ? "opacity-50 pointer-events-none" : ""}`}>
+                      <ImagePlus size={13} /> Reemplazar
+                      <input type="file" accept="image/*" className="sr-only" disabled={imageBusy}
+                        onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ""; void replaceImage(img.id, file); }} />
+                    </label>
+                    <div className="flex gap-1">
+                      <button type="button" title="Mover arriba" aria-label={`Mover foto ${i + 1} arriba`} disabled={imageBusy || i === 0}
+                        onClick={() => moveImage(i, -1)} className="flex-1 inline-flex items-center justify-center rounded border border-border py-2 disabled:opacity-30 hover:bg-muted">
+                        <ArrowUp size={14} />
+                      </button>
+                      <button type="button" title="Mover abajo" aria-label={`Mover foto ${i + 1} abajo`} disabled={imageBusy || i === existingImages.length - 1}
+                        onClick={() => moveImage(i, 1)} className="flex-1 inline-flex items-center justify-center rounded border border-border py-2 disabled:opacity-30 hover:bg-muted">
+                        <ArrowDown size={14} />
+                      </button>
+                    </div>
+                    <button type="button" disabled={imageBusy}
+                      onClick={() => removeImage(img.id)}
+                      className="inline-flex items-center justify-center gap-1 rounded border border-red-300 text-red-700 px-2 py-2 text-xs disabled:opacity-50 hover:bg-red-50">
+                      <Trash2 size={13} /> Eliminar
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+          <p className="mt-2 text-xs text-muted-foreground">Los cambios de portada, orden y eliminación se guardan al momento. Las nuevas fotos y los datos del formulario se guardan con “Guardar cambios”.</p>
+        </div>
 
         <div className="pt-4 border-t border-border">
           <p className="text-xs uppercase tracking-wider text-primary font-semibold mb-2">Agregar más fotos</p>
@@ -269,7 +451,7 @@ function EditProperty() {
 
       <div className="flex gap-3 mt-6 justify-end">
         <Link to="/vendedores/dashboard" className="px-5 py-2.5 border border-border rounded-sm text-sm">Cancelar</Link>
-        <button onClick={save} disabled={saving} className="inline-flex items-center gap-2 px-6 py-2.5 bg-secondary text-primary font-semibold rounded-sm hover:bg-secondary/85 disabled:opacity-60">
+        <button onClick={save} disabled={saving || imageBusy} className="inline-flex items-center gap-2 px-6 py-2.5 bg-secondary text-primary font-semibold rounded-sm hover:bg-secondary/85 disabled:opacity-60">
           <Save size={14} /> {saving ? "Guardando…" : "Guardar cambios"}
         </button>
       </div>
