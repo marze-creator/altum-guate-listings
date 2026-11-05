@@ -77,6 +77,7 @@ async function urlToCover(url: string, boxW: number, boxH: number): Promise<stri
 
 export async function generatePropertyPDF(
   p: Property & { images?: string[] } & PropertyExtra,
+  options: { clientName?: string } = {},
 ) {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const W = doc.internal.pageSize.getWidth();
@@ -100,6 +101,8 @@ export async function generatePropertyPDF(
   doc.setTextColor(...NAVY);
   let y = 95;
   const curr = (p.currency === "USD" ? "USD" : "GTQ") as "GTQ" | "USD";
+  const clientName = options.clientName?.trim().replace(/\s+/g, " ") || "";
+  const contentBottom = H - 78;
 
   // Title + zone
   doc.setFont("helvetica", "bold");
@@ -113,10 +116,25 @@ export async function generatePropertyPDF(
   doc.text(p.type + "  ·  " + opLabel + "  ·  " + p.zone, M, y);
   y += 18;
 
+  // Identificación del destinatario, sin confundirlo con propietario o comprador.
+  if (clientName) {
+    doc.setFillColor(...CREAM);
+    doc.setDrawColor(...GOLD);
+    doc.roundedRect(M, y, W - 2 * M, 39, 3, 3, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(110, 95, 65);
+    doc.text("COTIZACIÓN PREPARADA PARA", M + 12, y + 13);
+    doc.setTextColor(...NAVY);
+    doc.setFontSize(12);
+    doc.text(doc.splitTextToSize(clientName, W - 2 * M - 24)[0], M + 12, y + 29);
+    y += 47;
+  }
+
   // Main image (cover-crop, sin deformar)
   const cover = (p.images && p.images[0]) || p.image || p.cover_image;
   if (cover) {
-    const imgH = 252;
+    const imgH = 210;
     const imgW = W - 2 * M;
     const dataUrl = await urlToCover(cover, imgW, imgH);
     if (dataUrl) {
@@ -144,7 +162,7 @@ export async function generatePropertyPDF(
   const extras = (p.images ?? []).slice(1, 5);
   if (extras.length) {
     const gap = 8;
-    const thumbH = 116;
+    const thumbH = 96;
     const thumbW = (W - 2 * M - gap * (extras.length - 1)) / extras.length;
     for (let i = 0; i < extras.length; i++) {
       const d = await urlToCover(extras[i], thumbW, thumbH);
@@ -184,52 +202,91 @@ export async function generatePropertyPDF(
     doc.setTextColor(110, 110, 110);
     doc.text(s.l, cx, y + 36, { align: "center" });
   });
-  y += 60;
+  y += 54;
 
-  // Description
-  if (p.description) {
+  // Descripción: mantener título con contenido y continuar párrafos largos sin huecos.
+  if (p.description?.trim()) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    const lines = doc.splitTextToSize(p.description.trim(), W - 2 * M) as string[];
+    if (y + 14 + Math.min(2, lines.length) * 12 > contentBottom) {
+      doc.addPage();
+      y = M;
+    }
     doc.setTextColor(...NAVY);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.text("Descripción", M, y);
-    y += 14;
+    y += 16;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(60, 60, 60);
-    const lines = doc.splitTextToSize(p.description, W - 2 * M);
-    if (y + lines.length * 12 > H - 80) { doc.addPage(); y = M; }
-    doc.text(lines, M, y);
-    y += lines.length * 12 + 12;
+
+    let offset = 0;
+    while (offset < lines.length) {
+      const available = Math.floor((contentBottom - y) / 12);
+      if (available < 2) {
+        doc.addPage();
+        y = M;
+        continue;
+      }
+      const part = lines.slice(offset, offset + available);
+      doc.text(part, M, y);
+      y += part.length * 12;
+      offset += part.length;
+      if (offset < lines.length) {
+        doc.addPage();
+        y = M;
+      }
+    }
+    y += 14;
   }
 
-  // Features grid
-  const feats = p.amenities ?? p.features ?? [];
+  // Amenidades: dos columnas con ajuste automático y sin texto superpuesto.
+  const feats = p.amenities?.length ? p.amenities : (p.features ?? []);
   if (feats.length) {
-    if (y + 80 > H - 80) { doc.addPage(); y = M; }
+    const cols = 2;
+    const colW = (W - 2 * M) / cols;
+    const rows: string[][][] = [];
+    for (let i = 0; i < feats.length; i += cols) {
+      rows.push(feats.slice(i, i + cols).map((f) => {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        return doc.splitTextToSize(String(f), colW - 22) as string[];
+      }));
+    }
+    if (y + 18 + Math.max(18, (rows[0]?.[0]?.length ?? 1) * 12) > contentBottom) {
+      doc.addPage();
+      y = M;
+    }
+    doc.setTextColor(...NAVY);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    doc.setTextColor(...NAVY);
-    doc.text("Características", M, y);
-    y += 14;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(60, 60, 60);
-    const cols = 3;
-    const colW = (W - 2 * M) / cols;
-    feats.forEach((f, i) => {
-      const cx = M + (i % cols) * colW;
-      const cy = y + Math.floor(i / cols) * 16;
-      doc.setTextColor(...GOLD);
-      doc.text("•", cx, cy);
-      doc.setTextColor(60, 60, 60);
-      doc.text(String(f), cx + 12, cy);
-    });
-    y += Math.ceil(feats.length / cols) * 16 + 12;
+    doc.text("Amenidades y características", M, y);
+    y += 18;
+    for (const row of rows) {
+      const rowH = Math.max(...row.map((lines) => Math.max(1, lines.length) * 12)) + 5;
+      if (y + rowH > contentBottom) {
+        doc.addPage();
+        y = M;
+      }
+      row.forEach((lines, i) => {
+        const cx = M + i * colW;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(...GOLD);
+        doc.text("•", cx, y);
+        doc.setTextColor(60, 60, 60);
+        doc.text(lines, cx + 12, y);
+      });
+      y += rowH;
+    }
+    y += 11;
   }
 
   // Cotizacion section — solo para VENTA (no aplica a rentas)
   if (p.operation === "venta") {
-    if (y + 160 > H - 80) { doc.addPage(); y = M; }
+    if (y + 135 > contentBottom) { doc.addPage(); y = M; }
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.setTextColor(...NAVY);
@@ -274,7 +331,7 @@ export async function generatePropertyPDF(
   // (el servicio de mapas estáticos gratuito dejó de funcionar; un botón
   //  enlazado es más confiable y igual de útil para el cliente)
   if (p.lat && p.lng) {
-    if (y + 80 > H - 80) { doc.addPage(); y = M; }
+    if (y + 80 > contentBottom) { doc.addPage(); y = M; }
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.setTextColor(...NAVY);
@@ -315,7 +372,7 @@ export async function generatePropertyPDF(
   }
 
   // CTA block
-  if (y + 80 > H - 80) { doc.addPage(); y = M; }
+  if (y + 86 > contentBottom) { doc.addPage(); y = M; }
   doc.setFillColor(...CREAM);
   doc.rect(M, y, W - 2 * M, 70, "F");
   doc.setDrawColor(...GOLD);
@@ -342,22 +399,28 @@ export async function generatePropertyPDF(
   doc.textWithLink(SITE_URL, M + 16, y + 60, { url: SITE_URL });
   y += 86;
 
-  // Footer
-  doc.setFillColor(...FOOTER_NAVY);
-  doc.rect(0, H - 60, W, 60, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text("ALTUM GROUP", M, H - 38);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(...GOLD);
-  doc.text("Real Estate Premium · Guatemala", M, H - 26);
-  doc.setTextColor(220, 220, 220);
-  const footLine = "WhatsApp +" + WHATSAPP_CORP + "  ·  info@altumgroup.com.gt  ·  " + SITE_URL;
-  doc.text(footLine, M, H - 14);
+  // Mismo pie corporativo en todas las páginas.
+  const pageCount = doc.getNumberOfPages();
+  for (let page = 1; page <= pageCount; page++) {
+    doc.setPage(page);
+    doc.setFillColor(...FOOTER_NAVY);
+    doc.rect(0, H - 60, W, 60, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("ALTUM GROUP", M, H - 38);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...GOLD);
+    doc.text("Real Estate Premium · Guatemala", M, H - 26);
+    doc.setTextColor(220, 220, 220);
+    const footLine = "WhatsApp +" + WHATSAPP_CORP + "  ·  info@altumgroup.com.gt  ·  " + SITE_URL;
+    doc.text(footLine, M, H - 14);
+  
+  }
 
   const safeName = (p.title || "propiedad").replace(/[^\w-]+/g, "_").slice(0, 60);
   const stamp = new Date().toISOString().slice(0, 10);
-  doc.save("ALTUM-" + safeName + "-" + stamp + ".pdf");
+  const safeClient = clientName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9_-]+/g, "_").slice(0, 50);
+  doc.save("ALTUM-" + safeName + (safeClient ? "-" + safeClient : "") + "-" + stamp + ".pdf");
 }

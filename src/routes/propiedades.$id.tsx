@@ -6,6 +6,8 @@ import { PropertyCard } from "@/components/property-card";
 import { fetchPropertyById, fetchPublishedProperties } from "@/lib/properties-db";
 import { InquiryForm } from "@/components/inquiry-form";
 import { Cotizador } from "@/components/cotizador";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -22,6 +24,9 @@ function PropertyDetail() {
   const [similar, setSimilar] = useState<Property[]>([]);
   const [notFound, setNotFound] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+  const [clientName, setClientName] = useState("");
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   useEffect(() => {
     let canceled = false;
@@ -44,15 +49,27 @@ function PropertyDetail() {
   }, [id]);
 
   async function downloadPDF() {
-    if (!p) return;
-    toast.info("Generando PDF…");
+    if (!p || isGeneratingPdf) return;
+    const name = clientName.trim().replace(/\s+/g, " ");
+    if (name.length < 3 || name.length > 80) {
+      toast.error("Ingresa tu nombre completo (3 a 80 caracteres).");
+      return;
+    }
+
+    setIsGeneratingPdf(true);
     try {
       const { generatePropertyPDF } = await import("@/lib/pdf-generator");
-      await generatePropertyPDF(p);
-      // Track download as a property_view with referrer marker
-      supabase.from("property_views").insert({ property_id: p.id, referrer: "pdf_download" }).then(() => {});
+      await generatePropertyPDF(p, { clientName: name });
+      // No enviamos el nombre del cliente a analíticas ni lo almacenamos en la web.
+      // Solo registramos la descarga anónima como hasta ahora.
+      void supabase.from("property_views").insert({ property_id: p.id, referrer: "pdf_download" }).then(() => {});
+      setPdfDialogOpen(false);
+      setClientName("");
+      toast.success("Cotización personalizada descargada.");
     } catch (e: any) {
       toast.error("Error generando PDF: " + (e?.message ?? "desconocido"));
+    } finally {
+      setIsGeneratingPdf(false);
     }
   }
 
@@ -131,8 +148,8 @@ function PropertyDetail() {
                 <a href="https://wa.me/50241042250" target="_blank" rel="noreferrer" className="mt-4 block text-center py-3 bg-secondary text-primary font-semibold text-sm uppercase tracking-wider rounded-sm hover:bg-secondary/85">
                   Contactar por WhatsApp
                 </a>
-                <button onClick={downloadPDF} className="mt-2 w-full inline-flex items-center justify-center gap-2 py-3 border border-primary text-primary font-semibold text-sm uppercase tracking-wider rounded-sm hover:bg-primary hover:text-white transition-colors">
-                  <Download size={14} /> Descargar PDF
+                <button onClick={() => setPdfDialogOpen(true)} className="mt-2 w-full inline-flex items-center justify-center gap-2 py-3 border border-primary text-primary font-semibold text-sm uppercase tracking-wider rounded-sm hover:bg-primary hover:text-white transition-colors">
+                  <Download size={14} /> Descargar cotización PDF
                 </button>
               </>
             ) : (
@@ -199,6 +216,60 @@ function PropertyDetail() {
           />
         </div>
       </div>
+
+      <Dialog open={pdfDialogOpen} onOpenChange={(open) => { if (!isGeneratingPdf) setPdfDialogOpen(open); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tu cotización personalizada</DialogTitle>
+            <DialogDescription>
+              ¿Cuál es tu nombre completo? Lo incluiremos en el PDF para que puedas presentar
+              la información de esta propiedad a tu banco.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(event) => { event.preventDefault(); void downloadPDF(); }} className="space-y-5">
+            <div className="space-y-2">
+              <label htmlFor="pdf-client-name" className="block text-sm font-medium text-primary">
+                Nombre completo
+              </label>
+              <Input
+                id="pdf-client-name"
+                type="text"
+                autoComplete="name"
+                placeholder="Ej. Giovanni Barrientos"
+                value={clientName}
+                onChange={(event) => setClientName(event.target.value)}
+                minLength={3}
+                maxLength={80}
+                disabled={isGeneratingPdf}
+                required
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground">
+                Tu nombre se utiliza únicamente para generar esta cotización en tu dispositivo.
+                El PDF contiene valores referenciales sujetos a aprobación bancaria.
+              </p>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <button
+                type="button"
+                onClick={() => setPdfDialogOpen(false)}
+                disabled={isGeneratingPdf}
+                className="rounded-sm border border-border px-4 py-2 text-sm font-medium text-primary hover:bg-muted disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={isGeneratingPdf || clientName.trim().length < 3}
+                className="inline-flex items-center justify-center gap-2 rounded-sm bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-50"
+              >
+                <Download size={16} />
+                {isGeneratingPdf ? "Generando..." : "Descargar PDF"}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {similar.length > 0 && (
         <div className="mt-20">
