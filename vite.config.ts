@@ -12,4 +12,13 @@ export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
   },
+  // Rollup por defecto permite demasiadas operaciones de archivo paralelas (EMFILE)
+  // en el entorno limitado de Cloudflare Workers Builds.
+  vite: {
+    build: {
+      rollupOptions: {
+        maxParallelFileOps: 64,
+      },
+    },
+  },
 });
