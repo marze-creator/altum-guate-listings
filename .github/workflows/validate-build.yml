@@ -22,3 +22,5 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Compilar aplicación
         run: bun run build
+      - name: Validar empaquetado Worker sin desplegar
+        run: bunx wrangler deploy --dry-run --outdir .wrangler-validation
