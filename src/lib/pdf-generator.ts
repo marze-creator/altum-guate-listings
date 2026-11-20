@@ -15,6 +15,8 @@ interface PropertyExtra {
   parking?: number;
   cover_image?: string | null;
   features?: string[];
+  brochurePrice?: number | null;
+  brochureDiscount?: number | null;
 }
 
 function loadImage(url: string): Promise<HTMLImageElement | null> {
@@ -102,6 +104,10 @@ export async function generatePropertyPDF(
   let y = 95;
   const curr = (p.currency === "USD" ? "USD" : "GTQ") as "GTQ" | "USD";
   const clientName = options.clientName?.trim().replace(/\s+/g, " ") || "";
+  const quoteBasePrice = Math.max(0, Number(p.brochurePrice ?? p.price ?? 0));
+  const requestedDiscount = Math.max(0, Number(p.brochureDiscount ?? 0));
+  const quoteDiscount = Math.min(requestedDiscount, quoteBasePrice);
+  const finalQuotePrice = Math.max(0, quoteBasePrice - quoteDiscount);
   const contentBottom = H - 78;
 
   // Title + zone
@@ -152,7 +158,7 @@ export async function generatePropertyPDF(
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(17);
-      const priceLabel = formatMoney(p.price, curr) + (p.operation === "renta" ? "/mes" : "");
+      const priceLabel = formatMoney(finalQuotePrice, curr) + (p.operation === "renta" ? "/mes" : "");
       doc.text(priceLabel, M + 30, y + imgH - 16 - 14);
       y += imgH + 18;
     }
@@ -203,6 +209,33 @@ export async function generatePropertyPDF(
     doc.text(s.l, cx, y + 36, { align: "center" });
   });
   y += 54;
+
+  // Oferta comercial definida únicamente desde el portal de asesor.
+  // El cliente no modifica precio ni descuento: solo escribe su nombre al descargar.
+  if (quoteDiscount > 0) {
+    if (y + 70 > contentBottom) { doc.addPage(); y = M; }
+    doc.setFillColor(244, 249, 244);
+    doc.setDrawColor(90, 150, 105);
+    doc.roundedRect(M, y, W - 2 * M, 58, 3, 3, "FD");
+    const col = (W - 2 * M) / 3;
+    const offerCells = [
+      { label: "Precio cotización", value: formatMoney(quoteBasePrice, curr) },
+      { label: "Descuento", value: "- " + formatMoney(quoteDiscount, curr) },
+      { label: "Precio especial", value: formatMoney(finalQuotePrice, curr) },
+    ];
+    offerCells.forEach((cell, index) => {
+      const cx = M + index * col + col / 2;
+      doc.setTextColor(100, 100, 100);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.text(cell.label, cx, y + 18, { align: "center" });
+      doc.setTextColor(...NAVY);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(index === 2 ? 13 : 11);
+      doc.text(cell.value, cx, y + 39, { align: "center" });
+    });
+    y += 72;
+  }
 
   // Descripción: mantener título con contenido y continuar párrafos largos sin huecos.
   if (p.description?.trim()) {
@@ -292,7 +325,7 @@ export async function generatePropertyPDF(
     doc.setTextColor(...NAVY);
     doc.text("Cotización referencial (8% anual)", M, y);
     y += 14;
-    const matrix = buildMortgageMatrix(p.price, 0.08);
+    const matrix = buildMortgageMatrix(finalQuotePrice, 0.08);
     const termHeaders = TERMS_YEARS.map((t) => t + " años");
     const headers = ["Enganche", "Monto", "A financiar"].concat(termHeaders);
     const colCount = headers.length;
