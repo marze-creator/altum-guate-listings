@@ -210,6 +210,10 @@ function EditProperty() {
     if (!user || imageBusy) return;
     if (!f.title.trim()) return toast.error("Título obligatorio");
     if (!f.price || Number(f.price) <= 0) return toast.error("Precio inválido");
+    const brochureBase = Number(f.brochure_price || f.price || 0);
+    const brochureDiscount = Math.max(0, Number(f.brochure_discount || 0));
+    if (f.brochure_price && brochureBase <= 0) return toast.error("El precio base del PDF debe ser mayor a cero");
+    if (brochureDiscount > brochureBase) return toast.error("El descuento del PDF no puede superar el precio base");
     setSaving(true);
     try {
       const { error } = await (supabase as any).from("properties").update({
@@ -234,7 +238,7 @@ function EditProperty() {
         property_owner_email: f.property_owner_email.trim() || null,
         internal_notes: f.internal_notes.trim() || null,
         brochure_price: f.brochure_price.trim() ? Number(f.brochure_price) : null,
-        brochure_discount: Math.max(0, Number(f.brochure_discount || 0)),
+        brochure_discount: brochureDiscount,
         latitude: f.latitude,
         longitude: f.longitude,
       }).eq("id", id);
