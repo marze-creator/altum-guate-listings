@@ -10,6 +10,10 @@ export interface Property {
   operation: Operation;
   zone: string;
   price: number;
+  /** Precio base exclusivo de la cotización/PDF. Si falta, usa price. */
+  brochurePrice?: number | null;
+  /** Descuento exclusivo de la cotización/PDF. No cambia el precio publicado. */
+  brochureDiscount?: number | null;
   currency?: "GTQ" | "USD";
   beds: number;
   baths: number;
