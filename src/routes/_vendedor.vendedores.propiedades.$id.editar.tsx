@@ -33,6 +33,7 @@ function EditProperty() {
     zone: "Zona 10", city: "Guatemala", address: "", bedrooms: "0", bathrooms: "0",
     area_m2: "0", parking: "0", year_built: "", features: "", status: "draft",
     property_owner_name: "", property_owner_phone: "", property_owner_email: "", internal_notes: "",
+    brochure_price: "", brochure_discount: "0",
     latitude: 14.6349, longitude: -90.5069,
   });
 
@@ -62,6 +63,8 @@ function EditProperty() {
         property_owner_phone: row.property_owner_phone ?? "",
         property_owner_email: row.property_owner_email ?? "",
         internal_notes: row.internal_notes ?? "",
+        brochure_price: row.brochure_price == null ? "" : String(row.brochure_price),
+        brochure_discount: String(row.brochure_discount ?? 0),
         latitude: Number(row.latitude ?? 14.6349),
         longitude: Number(row.longitude ?? -90.5069),
       });
@@ -230,6 +233,8 @@ function EditProperty() {
         property_owner_phone: f.property_owner_phone.trim() || null,
         property_owner_email: f.property_owner_email.trim() || null,
         internal_notes: f.internal_notes.trim() || null,
+        brochure_price: f.brochure_price.trim() ? Number(f.brochure_price) : null,
+        brochure_discount: Math.max(0, Number(f.brochure_discount || 0)),
         latitude: f.latitude,
         longitude: f.longitude,
       }).eq("id", id);
@@ -339,6 +344,83 @@ function EditProperty() {
           <Field label="Área (m²)"><input type="number" min="0" value={f.area_m2} onChange={(e) => setF({ ...f, area_m2: e.target.value })} className="input-altum" /></Field>
           <Field label="Parqueos"><input type="number" min="0" value={f.parking} onChange={(e) => setF({ ...f, parking: e.target.value })} className="input-altum" /></Field>
           <Field label="Año construcción"><input type="number" value={f.year_built} onChange={(e) => setF({ ...f, year_built: e.target.value })} className="input-altum" /></Field>
+        </div>
+
+        <div className="rounded-sm border border-secondary/60 bg-secondary/5 p-4">
+          <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-primary font-semibold">Cotización / PDF comercial</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Solo se configura desde el portal vendedor. El cliente únicamente escribe su nombre para descargar.
+              </p>
+            </div>
+            <a
+              href={`/propiedades/${id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs font-semibold text-primary underline underline-offset-4"
+            >
+              Ver ficha pública / probar PDF
+            </a>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Field
+              label={`Precio base PDF (${f.currency})`}
+              hint="Si lo dejas vacío, el PDF usa el precio publicado."
+            >
+              <input
+                type="number"
+                min="0"
+                step="100"
+                value={f.brochure_price}
+                onChange={(e) => setF({ ...f, brochure_price: e.target.value })}
+                placeholder={f.price || "Precio publicado"}
+                className="input-altum"
+              />
+            </Field>
+
+            <Field
+              label={`Descuento PDF (${f.currency})`}
+              hint="Se resta únicamente en la cotización; no modifica el precio publicado."
+            >
+              <input
+                type="number"
+                min="0"
+                step="100"
+                value={f.brochure_discount}
+                onChange={(e) => setF({ ...f, brochure_discount: e.target.value })}
+                className="input-altum"
+              />
+            </Field>
+          </div>
+
+          {(() => {
+            const base = Number(f.brochure_price || f.price || 0);
+            const discount = Math.max(0, Math.min(Number(f.brochure_discount || 0), base));
+            const final = Math.max(0, base - discount);
+            const formatter = new Intl.NumberFormat("es-GT", {
+              style: "currency",
+              currency: f.currency === "USD" ? "USD" : "GTQ",
+              maximumFractionDigits: 0,
+            });
+            return (
+              <div className="mt-4 grid grid-cols-3 gap-2 rounded-sm border border-border bg-background p-3 text-center">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Base PDF</p>
+                  <p className="text-sm font-semibold text-primary mt-1">{formatter.format(base)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Descuento</p>
+                  <p className="text-sm font-semibold text-red-700 mt-1">-{formatter.format(discount)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Precio final</p>
+                  <p className="text-sm font-bold text-green-700 mt-1">{formatter.format(final)}</p>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         <Field label="Dirección"><input value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} className="input-altum" /></Field>
